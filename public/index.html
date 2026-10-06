@@ -1,0 +1,2294 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0F1B2D">
+<meta name="description" content="Plateforme de gestion universitaire pour les filières GI et RT, de la L1 à la L3.">
+<title>INPTIC — Gestion universitaire</title>
+<meta name="color-scheme" content="dark">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="INPTIC">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">
+<link rel="icon" href="icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; touch-action: manipulation; }
+  html { touch-action: pan-x pan-y; }
+  button, a, .btn, .pdf-btn, .icon-btn, .notif-btn, .menu-toggle,
+  input, select, textarea, .text-input, .auth-tab, .nav a { touch-action: manipulation; }
+
+  :root{
+    --navy-950:#0B1524; --navy-900:#0F1B2D; --navy-800:#16233A;
+    --navy-700:#1D2E4A; --navy-600:#26374F;
+    --line:rgba(255,255,255,0.08); --line-strong:rgba(255,255,255,0.12);
+    --ink:#E8ECF2; --ink-dim:#93A3BD; --ink-faint:#5E7191;
+    --teal:#3DDC97; --teal-dim:#1E4A3A;
+    --gold:#F2B84B; --gold-dim:#4A3B1E;
+    --blue:#5B8DEF; --blue-dim:#1E2E4E; --red:#E8637C;
+    --font-display:'Fraunces', Georgia, 'Times New Roman', serif;
+    --font-body:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --sidebar-w:250px;
+    --shadow-sm: 0 2px 8px rgba(0,0,0,0.2);
+    --shadow-md: 0 8px 24px rgba(0,0,0,0.3);
+    --shadow-lg: 0 16px 40px rgba(0,0,0,0.4);
+    --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --fs-xs: clamp(10.5px, 0.7vw + 8.5px, 12px);
+    --fs-sm: clamp(11.5px, 0.7vw + 9.5px, 13px);
+    --fs-base: clamp(13px, 0.85vw + 10.5px, 15px);
+    --fs-md: clamp(14px, 0.85vw + 11.5px, 16px);
+    --fs-lg: clamp(15px, 1vw + 12px, 18px);
+    --fs-xl: clamp(17px, 1.2vw + 13.5px, 22px);
+    --sp-1: clamp(4px, 0.4vw, 6px); --sp-2: clamp(8px, 0.6vw, 10px);
+    --sp-3: clamp(12px, 0.8vw, 14px); --sp-4: clamp(14px, 1vw, 18px);
+    --sp-5: clamp(18px, 1.2vw, 22px); --sp-6: clamp(22px, 1.5vw, 28px);
+    --sp-8: clamp(28px, 2vw, 36px);
+    --page-px: clamp(12px, 2.5vw, 28px); --page-py: clamp(16px, 2vw, 26px);
+    --radius: clamp(10px, 1vw, 12px); --radius-sm: clamp(7px, 0.7vw, 8px);
+  }
+
+  html,body{height:100%;min-height:100%;}
+  body{
+    margin:0; background:var(--navy-950); color:var(--ink);
+    font-family:var(--font-body); font-size:var(--fs-base); line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+    padding-left:env(safe-area-inset-left,0px);
+    padding-right:env(safe-area-inset-right,0px);
+    overflow-x:hidden; width:100%; max-width:100vw;
+  }
+  html{scroll-padding-top:env(safe-area-inset-top,0px);}
+  h1,h2,h3{font-family:var(--font-display);font-weight:600;margin:0;letter-spacing:-0.01em;}
+  h1{font-size:var(--fs-xl);} h2{font-size:var(--fs-md);} h3{font-size:var(--fs-lg);}
+  a{color:inherit;}
+  button, input, select, textarea{font-family:inherit; font-size:inherit; color:inherit;}
+  table{border-collapse:collapse; width:100%;}
+  ::selection{background:var(--blue-dim);}
+  img, svg, video { max-width: 100%; height: auto; }
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-track{background:var(--navy-950);}
+  ::-webkit-scrollbar-thumb{background:var(--navy-600);border-radius:4px;}
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
+  }
+
+  #app{display:flex; min-height:100vh; min-height:100dvh; max-width:100%;}
+
+  .sidebar{
+    width:var(--sidebar-w); flex-shrink:0;
+    background:var(--navy-900); border-right:1px solid var(--line);
+    display:flex; flex-direction:column;
+    padding:var(--sp-5) var(--sp-4);
+    position:fixed; top:0; left:0; bottom:0;
+    padding-top:calc(var(--sp-5) + env(safe-area-inset-top,0px));
+    padding-bottom:calc(var(--sp-4) + env(safe-area-inset-bottom,0px));
+    transition:transform var(--transition); z-index:40;
+    box-shadow: var(--shadow-md); height:100vh; height:100dvh;
+    overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
+  }
+  .brand{display:flex; align-items:center; gap:var(--sp-3); padding:0 var(--sp-1) var(--sp-5);}
+  .brand-mark{
+    width:clamp(38px, 4vw, 46px); height:clamp(38px, 4vw, 46px);
+    flex-shrink:0; object-fit:contain; border-radius:var(--radius-sm);
+    background:#fff; padding:2px; box-shadow: var(--shadow-sm);
+  }
+  .brand-text strong{display:block; font-family:var(--font-display); font-size:var(--fs-md); line-height:1.2;}
+  .brand-text span{display:block; font-size:var(--fs-xs); color:var(--ink-faint); margin-top:2px;}
+
+  .nav{display:flex; flex-direction:column; gap:2px; flex:1;}
+  .nav a{
+    display:flex; align-items:center; gap:var(--sp-2);
+    padding:var(--sp-3) var(--sp-3);
+    border-radius:var(--radius-sm); text-decoration:none;
+    color:var(--ink-dim); font-size:var(--fs-base); font-weight:500;
+    border-left:2px solid transparent; transition: all var(--transition);
+    min-height:44px;
+  }
+  .nav a svg{width:18px; height:18px; flex-shrink:0; opacity:.85; transition: opacity var(--transition);}
+  .nav a:hover{background:var(--navy-800); color:var(--ink);}
+  .nav a:hover svg{opacity:1;}
+  .nav a.active{background:var(--navy-800); color:var(--ink); border-left-color:var(--blue); box-shadow: inset 0 0 0 1px rgba(91,141,239,0.1);}
+
+  .sidebar-foot{display:flex; flex-direction:column; gap:var(--sp-2); padding-top:var(--sp-3); border-top:1px solid var(--line); margin-top:var(--sp-2);}
+  .sidebar-user{
+    display:flex; align-items:center; gap:var(--sp-2);
+    padding:var(--sp-3) var(--sp-2);
+    background:var(--navy-800); border:1px solid var(--line); border-radius:var(--radius-sm);
+    margin-bottom:var(--sp-2); transition: border-color var(--transition);
+  }
+  .sidebar-user .avatar{
+    width:34px; height:34px; border-radius:50%; background:var(--blue-dim);
+    color:var(--blue); display:flex; align-items:center; justify-content:center;
+    font-weight:700; font-size:var(--fs-sm); flex-shrink:0;
+  }
+  .sidebar-user .info{min-width:0; flex:1;}
+  .sidebar-user .info strong{display:block; font-size:var(--fs-sm); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .sidebar-user .info span{display:block; font-size:var(--fs-xs); color:var(--ink-faint); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+
+  .main-wrap{margin-left:var(--sidebar-w); flex:1; min-width:0; display:flex; flex-direction:column; max-width:100%;}
+
+  .topbar{
+    display:flex; align-items:center; gap:var(--sp-3);
+    padding:var(--sp-4) var(--page-px);
+    border-bottom:1px solid var(--line);
+    position:sticky; top:0;
+    padding-top:calc(var(--sp-4) + env(safe-area-inset-top,0px));
+    background:rgba(11,21,36,.75);
+    backdrop-filter:blur(12px) saturate(180%);
+    -webkit-backdrop-filter:blur(12px) saturate(180%);
+    z-index:20; box-shadow: var(--shadow-sm); min-height:56px;
+  }
+  .menu-toggle{
+    display:none; background:none; border:1px solid var(--line); border-radius:var(--radius-sm);
+    width:42px; height:42px; align-items:center; justify-content:center; cursor:pointer;
+    transition: all var(--transition); flex-shrink:0;
+  }
+  .menu-toggle:hover{border-color: var(--line-strong); background: var(--navy-800);}
+  .menu-toggle svg{width:20px; height:20px;}
+  #pageTitle{font-size:var(--fs-lg); line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  #pageSub{color:var(--ink-faint); font-size:var(--fs-sm); margin-top:2px;}
+  .topbar-right{margin-left:auto; display:flex; align-items:center; gap:var(--sp-2); flex-shrink:0;}
+  #installBtn{
+    background:var(--blue); color:#0B1524; border:none;
+    padding:var(--sp-2) var(--sp-3);
+    border-radius:var(--radius-sm); font-weight:600; font-size:var(--fs-sm); cursor:pointer;
+    transition: all var(--transition); white-space:nowrap;
+  }
+  #installBtn:hover{filter:brightness(1.1); transform: translateY(-1px);}
+
+  main#view{padding:var(--page-py) var(--page-px) 60px; max-width:1180px; width:100%; margin:0 auto;}
+
+  .panel{
+    background:var(--navy-900); border:1px solid var(--line); border-radius:var(--radius);
+    padding:var(--sp-4) var(--sp-5); margin-bottom:var(--sp-5);
+    box-shadow: var(--shadow-md); transition: border-color var(--transition);
+  }
+  .panel:hover{border-color: var(--line-strong);}
+  .panel-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:var(--sp-3); gap:var(--sp-2); flex-wrap:wrap;}
+  .panel-head h2{font-size:var(--fs-md);}
+  .panel-head p{color:var(--ink-faint); font-size:var(--fs-sm); margin-top:3px;}
+
+  .filter-bar{display:flex; gap:var(--sp-2); flex-wrap:wrap; margin-bottom:var(--sp-4); align-items:center;}
+  select, .text-input, textarea.text-input{
+    background:var(--navy-800); border:1px solid var(--line); color:var(--ink);
+    padding:10px var(--sp-3); border-radius:var(--radius-sm); font-size:16px;
+    min-width:120px; transition: all var(--transition); max-width:100%;
+  }
+  textarea.text-input{ min-height: 80px; resize: vertical; width: 100%; font-family: inherit; }
+  select:hover, .text-input:hover{border-color: var(--line-strong); background: var(--navy-700);}
+  select:focus, .text-input:focus, button:focus-visible, a:focus-visible{
+    outline:2px solid var(--blue); outline-offset:1px; border-color: transparent;
+  }
+  .text-input{min-width:0; width:100%; max-width:280px;}
+  .field-row .text-input { min-width: 0; max-width: none; }
+
+  .locked-filter{
+    display: inline-flex; align-items: center; gap:6px;
+    padding:10px var(--sp-3); background: var(--navy-800);
+    border: 1px solid var(--line); border-radius: var(--radius-sm);
+    font-size:var(--fs-sm); color: var(--ink-dim); line-height:1.4;
+  }
+  .locked-filter strong { color: var(--ink); font-weight: 600; }
+
+  .btn{
+    background:var(--blue); color:#0B1524; border:none;
+    padding:10px var(--sp-3); border-radius:var(--radius-sm);
+    font-weight:600; font-size:var(--fs-sm); cursor:pointer;
+    transition: all var(--transition);
+    display: inline-flex; align-items: center; justify-content: center; gap:6px;
+    min-height:44px; white-space:nowrap; max-width:100%;
+  }
+  .btn:hover{filter:brightness(1.1); transform: translateY(-1px);}
+  .btn:active{transform: translateY(0);}
+  .btn:disabled{opacity:.6; cursor:not-allowed; transform: none;}
+  .btn.secondary{background:var(--navy-800); color:var(--ink); border:1px solid var(--line);}
+  .btn.secondary:hover{background:var(--navy-700); border-color: var(--line-strong);}
+  .btn.danger{background:transparent; color:var(--red); border:1px solid rgba(232,99,124,.4); padding:var(--sp-2) var(--sp-3); font-size:var(--fs-sm);}
+  .btn.danger:hover{background: rgba(232,99,124,0.1); border-color: var(--red);}
+  .btn.small{padding:var(--sp-2) var(--sp-3); font-size:var(--fs-sm); min-height:38px;}
+
+  table.data th{
+    text-align:left; font-size:var(--fs-xs); color:var(--ink-faint);
+    font-weight:500; padding:0 var(--sp-2) 10px; border-bottom:1px solid var(--line);
+    letter-spacing:.02em; white-space:nowrap;
+  }
+  table.data td{padding:var(--sp-3) var(--sp-2); border-bottom:1px solid var(--navy-800); font-size:var(--fs-sm); vertical-align:middle;}
+  table.data tr:last-child td{border-bottom:none;}
+  table.data tr:hover td{background:var(--navy-800);}
+  .table-scroll{overflow-x:auto; border-radius: var(--radius-sm); -webkit-overflow-scrolling: touch;}
+  .row-actions{display:flex; gap:6px; justify-content:flex-end;}
+  .icon-btn{
+    background:none; border:1px solid var(--line); color:var(--ink-dim); width:40px; height:40px;
+    border-radius:7px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center;
+    transition: all var(--transition); flex-shrink:0;
+  }
+  .icon-btn:hover{color:var(--ink); border-color:var(--blue); background: var(--navy-800); transform: scale(1.05);}
+  .icon-btn svg{width:16px; height:16px;}
+
+  .tag{display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:20px; font-size:var(--fs-xs); font-weight:600; white-space:nowrap;}
+  .tag.gi{background:var(--teal-dim); color:var(--teal); border: 1px solid rgba(61,220,151,0.2);}
+  .tag.rt{background:var(--gold-dim); color:var(--gold); border: 1px solid rgba(242,184,75,0.2);}
+
+  .empty-state{text-align:center; padding:var(--sp-8) var(--sp-4); color:var(--ink-faint);}
+  .empty-state svg{width:34px; height:34px; margin-bottom:12px; opacity:.6;}
+  .empty-state p{margin:0 0 14px; font-size:var(--fs-sm);}
+
+  .pdf-row{
+    display:flex; align-items:center; gap:var(--sp-3);
+    padding:var(--sp-3) var(--sp-4); margin-bottom:var(--sp-2);
+    background:var(--navy-800); border:1px solid var(--line);
+    border-left: 3px solid transparent; border-radius:var(--radius);
+    transition: all var(--transition); flex-wrap: wrap;
+  }
+  .pdf-row:last-child{margin-bottom:0;}
+  .pdf-row:hover{border-color:var(--line-strong); border-left-color: var(--blue); background:var(--navy-700);}
+  .pdf-num{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:26px; height:26px; border-radius:50%;
+    background:var(--navy-900); border:1px solid var(--line);
+    font-size:var(--fs-xs); font-weight:700; color:var(--ink-dim); flex-shrink:0;
+  }
+  .pdf-icon{
+    width:46px; height:46px; border-radius:11px;
+    background:linear-gradient(135deg, rgba(96,165,250,.15), rgba(96,165,250,.04));
+    border:1px solid rgba(96,165,250,.35);
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0; color:#60A5FA;
+  }
+  .pdf-icon svg{width:22px; height:22px;}
+  .pdf-meta{flex:1; min-width:0; width: 100%;}
+  .pdf-name{font-size:var(--fs-md); font-weight:600; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .pdf-commentaire {
+    font-size:var(--fs-sm); color: var(--ink-dim);
+    background: rgba(91,141,239,0.08); padding: 8px 12px;
+    border-radius: 6px; margin: 6px 0;
+    border-left: 2px solid var(--blue);
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .pdf-sub{ font-size:var(--fs-xs); color:var(--ink-faint); margin-top:3px; }
+  .pdf-actions{display:flex; gap:var(--sp-2); flex-shrink:0; align-items: center; flex-wrap: wrap;}
+
+  .pdf-btn{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:var(--sp-3) var(--sp-4); border-radius:var(--radius-sm);
+    font-size:var(--fs-base); font-weight:600;
+    border:1px solid var(--line); background:var(--navy-900);
+    color:var(--ink-dim); cursor:pointer;
+    transition: all var(--transition); white-space:nowrap;
+    min-height:44px;
+  }
+  .pdf-btn svg{width:17px; height:17px; flex-shrink:0;}
+  .pdf-btn:hover{color:var(--ink); border-color:var(--blue); background:var(--navy-800); transform:translateY(-2px);}
+  .pdf-btn:active{transform: translateY(0);}
+  .pdf-btn.view:hover{ color:var(--blue); border-color:var(--blue); background: rgba(91,141,239,0.1); }
+  .pdf-btn.download:hover{ color:var(--teal); border-color:var(--teal); background: rgba(61,220,151,0.1); }
+  .pdf-btn.delete:hover{ color:var(--red); border-color:var(--red); background: rgba(232,99,124,0.1); }
+
+  .admin-only-note{font-size:var(--fs-sm); color:var(--ink-faint); margin-top:2px;}
+
+  .modal-backdrop{
+    position:fixed; inset:0; background:rgba(6,11,20,.75); display:flex; align-items:center;
+    justify-content:center; z-index:100; padding:var(--sp-5);
+    backdrop-filter: blur(4px); animation: backdropIn 0.2s ease-out;
+  }
+  @keyframes backdropIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal{
+    background:var(--navy-900); border:1px solid var(--line-strong); border-radius:var(--radius);
+    width:100%; max-width:min(440px, 100%); max-height:88vh; max-height:88dvh;
+    overflow-y:auto; padding:var(--sp-6);
+    box-shadow: var(--shadow-lg);
+    animation: modalIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    -webkit-overflow-scrolling: touch;
+  }
+  @keyframes modalIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+  .modal h3{font-size:var(--fs-lg); margin-bottom:4px;}
+  .modal .modal-sub{color:var(--ink-faint); font-size:var(--fs-sm); margin-bottom:var(--sp-4);}
+  .field{margin-bottom:var(--sp-3);}
+  .field label{display:block; font-size:var(--fs-sm); color:var(--ink-dim); margin-bottom:6px;}
+  .field select, .field input, .field textarea{width:100%; max-width:none;}
+  .field-row{display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-2);}
+  .modal-actions{display:flex; justify-content:flex-end; gap:var(--sp-2); margin-top:var(--sp-5); flex-wrap:wrap;}
+
+  #toast{
+    position:fixed; bottom:22px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--ink); color:#0B1524;
+    padding:var(--sp-3) var(--sp-4); border-radius:var(--radius-sm);
+    font-size:var(--fs-sm); font-weight:600;
+    opacity:0; pointer-events:none; transition:opacity .3s ease, transform .3s ease;
+    z-index:200; padding-bottom:calc(var(--sp-3) + env(safe-area-inset-bottom,0px));
+    box-shadow: var(--shadow-lg); max-width:calc(100vw - 32px);
+  }
+  #toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  .sidebar-scrim{display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:30;}
+  .hidden{display:none !important;}
+
+  #authScreen{
+    min-height:100vh; min-height:100dvh;
+    display:flex; align-items:center; justify-content:center;
+    padding:var(--sp-5);
+    padding-top:calc(var(--sp-5) + env(safe-area-inset-top,0px));
+    padding-bottom:calc(var(--sp-5) + env(safe-area-inset-bottom,0px));
+    background: radial-gradient(circle at 50% 0%, rgba(91,141,239,0.1) 0%, transparent 60%);
+  }
+  .auth-card{
+    width:100%; max-width:400px;
+    background:var(--navy-900); border:1px solid var(--line-strong);
+    border-radius:var(--radius); padding:var(--sp-6) var(--sp-5);
+    box-shadow: var(--shadow-lg); animation: modalIn 0.3s ease-out;
+  }
+  .auth-logo{display:flex; align-items:center; gap:var(--sp-3); margin-bottom:var(--sp-5);}
+  .auth-logo img{
+    width:clamp(50px, 6vw, 60px); height:clamp(50px, 6vw, 60px);
+    flex-shrink:0; object-fit:contain; border-radius:var(--radius-sm);
+    background:#fff; padding:3px;
+  }
+  .auth-logo strong{display:block; font-family:var(--font-display); font-size:var(--fs-md);}
+  .auth-logo span{display:block; font-size:var(--fs-xs); color:var(--ink-faint); margin-top:2px;}
+  .auth-tabs{display:flex; gap:4px; background:var(--navy-800); padding:4px; border-radius:var(--radius-sm); margin-bottom:var(--sp-4); border: 1px solid var(--line);}
+  .auth-tab{
+    flex:1; text-align:center; padding:var(--sp-3); border-radius:7px;
+    font-size:var(--fs-base); font-weight:600; cursor:pointer;
+    color:var(--ink-dim); background:none; border:none;
+    transition: all var(--transition); min-height:44px;
+  }
+  .auth-tab:hover{color: var(--ink);}
+  .auth-tab.active{background:var(--blue); color:#0B1524;}
+  .auth-error{background:rgba(232,99,124,.12); color:var(--red); border:1px solid rgba(232,99,124,.3); padding:var(--sp-3); border-radius:var(--radius-sm); font-size:var(--fs-sm); margin-bottom:var(--sp-3);}
+  .auth-success{background:rgba(61,220,151,.12); color:var(--teal); border:1px solid rgba(61,220,151,.3); padding:var(--sp-3); border-radius:var(--radius-sm); font-size:var(--fs-sm); margin-bottom:var(--sp-3);}
+
+  .user-chip{display:flex; align-items:center; gap:8px; font-size:var(--fs-sm); color:var(--ink-dim); white-space:nowrap; min-width:0;}
+  .user-chip strong{color:var(--ink); font-weight:600; overflow:hidden; text-overflow:ellipsis;}
+  .role-pill{padding:2px 8px; border-radius:20px; font-size:var(--fs-xs); font-weight:700; text-transform:uppercase; letter-spacing:.03em; flex-shrink:0;}
+  .role-pill.admin{background:var(--blue-dim); color:var(--blue);}
+  .role-pill.etudiant{background:var(--teal-dim); color:var(--teal);}
+
+  .notif-wrap{position:relative;}
+  .notif-btn{
+    position:relative; background:none; border:1px solid var(--line); color:var(--ink-dim);
+    width:42px; height:42px; border-radius:var(--radius-sm); cursor:pointer;
+    display:inline-flex; align-items:center; justify-content:center;
+    transition:all var(--transition); flex-shrink:0;
+  }
+  .notif-btn:hover{color:var(--ink); border-color:var(--blue); background: var(--navy-800);}
+  .notif-btn svg{width:20px; height:20px;}
+  .notif-badge{
+    position:absolute; top:-5px; right:-5px;
+    background:var(--red); color:#fff;
+    min-width:18px; height:18px; border-radius:9px;
+    font-size:10.5px; font-weight:700; line-height:18px; text-align:center;
+    padding:0 5px; border:2px solid var(--navy-900);
+    pointer-events:none; animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(232,99,124,0.7); }
+    70% { box-shadow: 0 0 0 6px rgba(232,99,124,0); }
+    100% { box-shadow: 0 0 0 0 rgba(232,99,124,0); }
+  }
+  .notif-badge.hidden{display:none; animation: none;}
+
+  .notif-panel{
+    position:absolute; top:calc(100% + 10px); right:0;
+    width:min(340px, calc(100vw - 32px));
+    background:var(--navy-900); border:1px solid var(--line-strong);
+    border-radius:var(--radius); box-shadow:var(--shadow-lg);
+    z-index:60; overflow:hidden;
+    animation:notifSlide .2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  @keyframes notifSlide{
+    from{opacity:0; transform:translateY(-8px) scale(0.98);}
+    to{opacity:1; transform:translateY(0) scale(1);}
+  }
+  .notif-panel-head{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:var(--sp-3) var(--sp-4); border-bottom:1px solid var(--line);
+    background: var(--navy-800);
+  }
+  .notif-panel-head h3{font-size:var(--fs-md);}
+  .notif-panel-head button{
+    background:none; border:none; color:var(--blue);
+    font-size:var(--fs-sm); font-weight:600; cursor:pointer; padding:0;
+  }
+  .notif-panel-head button:hover{text-decoration:underline; color: var(--ink);}
+  .notif-list{max-height:min(420px, 60vh); overflow-y:auto;}
+  .notif-item{
+    display:flex; gap:var(--sp-3); padding:var(--sp-3) var(--sp-4);
+    border-bottom:1px solid var(--navy-800); cursor:pointer;
+  }
+  .notif-item:hover{background:var(--navy-800);}
+  .notif-item:last-child{border-bottom:none;}
+  .notif-item.unread{background:rgba(91,141,239,.07);}
+  .notif-item.unread:hover{background:rgba(91,141,239,.15);}
+  .notif-dot{ width:9px; height:9px; border-radius:50%; flex-shrink:0; background:var(--blue); margin-top:6px; }
+  .notif-item.read .notif-dot{background:var(--ink-faint); opacity:.4;}
+  .notif-body{flex:1; min-width:0;}
+  .notif-title{font-size:var(--fs-base); font-weight:600; color:var(--ink); margin-bottom:3px;}
+  .notif-text{font-size:var(--fs-sm); color:var(--ink-dim); line-height:1.45;}
+  .notif-time{font-size:var(--fs-xs); color:var(--ink-faint); margin-top:5px;}
+  .notif-empty{ padding:var(--sp-8) var(--sp-4); text-align:center; color:var(--ink-faint); font-size:var(--fs-sm); }
+
+  .notif-perm-banner{
+    display:flex; align-items:center; gap:var(--sp-3);
+    background:var(--navy-800); border:1px solid var(--line);
+    border-radius:var(--radius-sm); padding:var(--sp-3); margin-bottom:var(--sp-4);
+    font-size:var(--fs-sm); color:var(--ink-dim); flex-wrap:wrap;
+  }
+  .notif-perm-banner button{
+    background:var(--blue); color:#0B1524; border:none;
+    padding:var(--sp-2) var(--sp-3); border-radius:var(--radius-sm);
+    font-size:var(--fs-sm); font-weight:600; cursor:pointer;
+    white-space:nowrap; min-height:40px;
+  }
+  .notif-perm-banner button:hover{filter:brightness(1.1); transform: translateY(-1px);}
+
+  .notif-close-btn{
+    background:var(--navy-800); border:1px solid var(--line); color:var(--ink-dim);
+    width:36px; height:36px; border-radius:var(--radius-sm);
+    cursor:pointer; font-size:14px;
+    display:inline-flex; align-items:center; justify-content:center;
+    padding:0; font-weight:700;
+  }
+  .notif-close-btn:hover{ color:var(--ink); border-color:var(--blue); background: var(--navy-700); }
+  @media (min-width:521px){ .notif-close-btn{display:none;} }
+
+  /* ============ VISIONNEUSE PDF.js (PWA / MOBILE) ============ */
+  #pdfMobileViewer{
+    position:fixed; inset:0; z-index:10000;
+    background:#0F1B2D;
+    display:flex; flex-direction:column;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+    animation: pdfViewerIn .2s ease-out;
+  }
+  @keyframes pdfViewerIn {
+    from { opacity:0; transform: translateY(20px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+  #pdfMobileViewer .pdf-viewer-header{
+    padding:12px 14px;
+    display:flex; justify-content:space-between; align-items:center;
+    border-bottom:1px solid rgba(255,255,255,0.1);
+    background:#16233A; flex-shrink:0; gap:10px;
+  }
+  #pdfMobileViewer .pdf-viewer-title{
+    font-weight:600; color:#E8ECF2; font-size:14px;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    flex:1; min-width:0;
+  }
+  #pdfMobileViewer .pdf-viewer-close{
+    background:#5B8DEF; border:none; color:#0B1524;
+    padding:8px 16px; border-radius:8px; font-weight:600;
+    font-size:13px; cursor:pointer; font-family:inherit; flex-shrink:0;
+  }
+  #pdfMobileViewer .pdf-canvas-container{
+    flex:1; overflow-y:auto; background:#525659; padding:10px;
+    -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
+    display:flex; flex-direction:column; align-items:center;
+  }
+  #pdfMobileViewer .pdf-page-canvas{
+    display:block; margin-bottom:10px; background:#fff;
+    box-shadow:0 2px 8px rgba(0,0,0,.3); max-width:100%; height:auto;
+  }
+  #pdfMobileViewer .pdf-loading{
+    display:flex; flex-direction:column; align-items:center;
+    justify-content:center; padding:80px 20px; color:#93A3BD;
+  }
+  #pdfMobileViewer .pdf-spinner{
+    width:44px; height:44px;
+    border:3px solid rgba(255,255,255,.15);
+    border-top-color:#5B8DEF; border-radius:50%;
+    animation: pdfSpin .8s linear infinite;
+  }
+  @keyframes pdfSpin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 900px){
+    .sidebar{transform:translateX(-100%); width:min(280px, 85vw);}
+    .sidebar.open{transform:translateX(0);}
+    .sidebar-scrim.show{display:block;}
+    .main-wrap{margin-left:0;}
+    .menu-toggle{display:flex;}
+    #pageSub{ display: none; }
+    .topbar{
+      padding:var(--sp-3) var(--page-px);
+      padding-top:calc(var(--sp-3) + env(safe-area-inset-top,0px));
+    }
+  }
+
+  @media (max-width: 640px){
+    .filter-bar{flex-direction: column; align-items: stretch; gap: var(--sp-2);}
+    .filter-bar > select, .filter-bar > .text-input, .filter-bar > input,
+    .filter-bar > .locked-filter { width: 100%; min-width: 0; max-width: none; }
+    .filter-bar > div[style*="margin-left:auto"]{
+      margin-left: 0 !important;
+      display: flex !important; flex-direction: column !important;
+      gap: var(--sp-2) !important; width: 100%;
+    }
+    .filter-bar > div > button { width: 100%; }
+    .locked-filter{display: block; text-align: center; line-height: 1.5;}
+
+    .pdf-row{padding: var(--sp-3); gap: var(--sp-2);}
+    .pdf-meta{ order: 2; width: 100%; }
+    .pdf-num{ order: 1; }
+    .pdf-icon{ order: 1; }
+    .pdf-actions{
+      order: 3; width: 100%;
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--sp-2);
+    }
+    .pdf-actions .pdf-btn{padding: var(--sp-3) var(--sp-2); justify-content: center; font-size: var(--fs-sm);}
+    .pdf-actions .pdf-btn .pdf-btn-label{ display: inline; margin-left: 4px; }
+    .pdf-actions > button:only-child { grid-column: 1 / -1; }
+    .pdf-actions:has(> button:nth-child(2):last-child) { grid-template-columns: 1fr 1fr; }
+
+    .modal-backdrop{ padding: 0; align-items: flex-end; }
+    .modal{
+      max-width: 100%; width: 100%; max-height: 92dvh;
+      border-radius: 18px 18px 0 0;
+      border-left: none; border-right: none; border-bottom: none;
+      padding: var(--sp-5) var(--sp-4) calc(var(--sp-5) + env(safe-area-inset-bottom,0px));
+      animation: modalSlideUp .28s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+    }
+    @keyframes modalSlideUp {
+      from { transform: translateY(100%); opacity: 0.6; }
+      to   { transform: translateY(0); opacity: 1; }
+    }
+    .field-row{grid-template-columns: 1fr; gap: var(--sp-3);}
+    .modal-actions{display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2);}
+    .modal-actions .btn { width: 100%; }
+    .modal-actions:has(> button:only-child) { grid-template-columns: 1fr; }
+
+    .topbar{ gap: var(--sp-2); min-height: 56px; }
+    #pageTitle{ font-size: var(--fs-md); }
+    .topbar-right{ gap: 6px; }
+
+    .auth-card { padding: var(--sp-5) var(--sp-4); }
+    .auth-tab { padding: var(--sp-3) var(--sp-2); }
+
+    #toast {
+      left: var(--sp-3); right: var(--sp-3);
+      bottom: calc(var(--sp-4) + env(safe-area-inset-bottom, 0px));
+      transform: translateX(0) translateY(20px);
+      max-width: none; text-align: center;
+    }
+    #toast.show { transform: translateX(0) translateY(0); }
+  }
+
+  @media (max-width: 400px){
+    .pdf-actions{ grid-template-columns: 1fr 1fr; }
+    .pdf-actions .pdf-btn .pdf-btn-label { display: none; }
+    .pdf-icon{ width: 40px; height: 40px; }
+    .pdf-icon svg{ width: 18px; height: 18px; }
+    .pdf-num{ width: 22px; height: 22px; font-size: 10px; }
+  }
+
+  @media (max-width: 520px){
+    .notif-panel{
+      position:fixed; top:0; left:0; right:0; bottom:0;
+      width:100vw; max-width:100vw;
+      height:100vh; height:100dvh;
+      max-height:100vh; max-height:100dvh;
+      border-radius:0; border:none;
+      display:flex; flex-direction:column;
+      animation:notifFullScreen .25s ease;
+      padding:0;
+    }
+    .notif-panel-head{
+      padding: var(--sp-4) var(--sp-5);
+      padding-top: calc(var(--sp-4) + env(safe-area-inset-top,0px));
+      flex-shrink:0; position:sticky; top:0; z-index:2;
+    }
+    .notif-panel-head h3{ font-size: var(--fs-lg); font-weight:700; }
+    .notif-list{
+      flex:1 1 auto; min-height:0; max-height:none;
+      overflow-y:auto; -webkit-overflow-scrolling:touch;
+      padding-bottom:env(safe-area-inset-bottom,0px);
+    }
+    .notif-item{ padding: var(--sp-4) var(--sp-5); min-height:72px; align-items:flex-start; }
+  }
+  @keyframes notifFullScreen{ from{opacity:0; transform:translateY(12px);} to{opacity:1; transform:translateY(0);} }
+
+  body.modal-open { overflow: hidden; }
+</style>
+</head>
+<body>
+
+<div id="authScreen" class="hidden"></div>
+
+<div id="app" class="hidden">
+  <div class="sidebar-scrim" id="scrim"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <img src="/inptic.jpg" alt="INPTIC" class="brand-mark">
+      <div class="brand-text">
+        <strong>INPTIC</strong>
+        <span>GI &amp; RT · L1 – L3</span>
+      </div>
+    </div>
+    <nav class="nav" id="nav">
+      <a href="#/emploi" data-route="emploi">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 3v3M16 3v3"/></svg>
+        Emploi du temps
+      </a>
+      <a href="#/notes" data-route="notes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v5h5"/><path d="M8.5 13.5h7M8.5 17h4.5"/></svg>
+        Relevé de notes
+      </a>
+      <a href="#/rattrapage" data-route="rattrapage">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+        Rattrapage
+      </a>
+      <a href="#/resultats" data-route="resultats">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        Résultat des semestres
+      </a>
+      <a href="#/communiques" data-route="communiques">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"/></svg>
+        Communiqués
+      </a>
+      <a href="#/etudiants" data-route="etudiants" data-admin-only="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.4"/><path d="M2.5 20c0-3.6 2.9-6.2 6.5-6.2s6.5 2.6 6.5 6.2"/><path d="M16 4.3c1.7.5 2.9 2 2.9 3.9 0 1.8-1.2 3.4-2.9 3.9"/><path d="M21.5 20c0-3-2-5.3-4.8-6"/></svg>
+        Étudiants
+      </a>
+      <a href="#/compte" data-route="compte">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+        Mon compte
+      </a>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="sidebar-user" id="sidebarUser"></div>
+      <button class="btn secondary" id="btnLogoutSidebar" style="width:100%;">Se déconnecter</button>
+    </div>
+  </aside>
+
+  <div class="main-wrap">
+    <header class="topbar">
+      <button class="menu-toggle" id="menuToggle" aria-label="Ouvrir le menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <div>
+        <h1 id="pageTitle">Emploi du temps</h1>
+        <div id="pageSub"></div>
+      </div>
+      <div class="topbar-right">
+        <div class="notif-wrap" id="notifWrap">
+          <button class="notif-btn" id="notifBtn" aria-label="Notifications">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+            <span class="notif-badge hidden" id="notifBadge">0</span>
+          </button>
+          <div id="notifPanelRoot"></div>
+        </div>
+        <span class="user-chip" id="userChip"></span>
+        <button id="installBtn" hidden>Installer</button>
+      </div>
+    </header>
+    <main id="view"></main>
+  </div>
+</div>
+
+<div id="modalRoot"></div>
+<div id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+
+const TOKEN_KEY = "inptic.token";
+const MAX_PDF_BYTES = 5 * 1024 * 1024;
+
+const api = {
+  token: null,
+  load(){ try{ this.token = localStorage.getItem(TOKEN_KEY); }catch(e){ this.token = null; } },
+  setToken(t){
+    this.token = t || null;
+    try{
+      if(t) localStorage.setItem(TOKEN_KEY, t);
+      else localStorage.removeItem(TOKEN_KEY);
+    }catch(e){}
+  },
+  async raw(method, path, opts){
+    opts = opts || {};
+    const headers = Object.assign({}, opts.headers || {});
+    if(this.token) headers["Authorization"] = "Bearer " + this.token;
+    let body = opts.body;
+    if(opts.json !== undefined){
+      headers["Content-Type"] = "application/json";
+      body = JSON.stringify(opts.json);
+    }
+    let r;
+    try{
+      r = await fetch("/api" + path, {method, headers, body, cache: "no-store"});
+    }catch(e){ throw new Error("Connexion impossible. Vérifiez votre accès Internet."); }
+    if(!r.ok){
+      const j = await r.json().catch(()=>({}));
+      const err = new Error(j.error || ("Erreur " + r.status));
+      err.status = r.status;
+      if(r.status === 401 && this.token && path !== "/login"){ this.setToken(null); err.expired = true; }
+      throw err;
+    }
+    return r;
+  },
+  async call(method, path, opts){
+    const r = await this.raw(method, path, opts);
+    return r.json();
+  },
+  async login(email, password){
+    const j = await this.call("POST", "/login", {json: {email, password}});
+    this.setToken(j.token);
+    return j.user;
+  },
+  async signup(data){
+    const j = await this.call("POST", "/signup", {json: data});
+    this.setToken(j.token);
+    return j.user;
+  },
+  async fileBlob(id){
+    const r = await this.raw("GET", "/docs/" + id + "/file");
+    return r.blob();
+  }
+};
+
+const ROLE_LABEL = {admin:"Admin", etudiant:"Étudiant", enseignant:"Enseignant"};
+const FILIERES = ["GI","RT"];
+const NIVEAUX = ["L1","L2","L3"];
+const FILIERE_LABEL = {GI:"Génie Informatique", RT:"Réseaux &amp; Télécommunications"};
+
+const ANNEES_UNIV = [
+  "2026-2027","2027-2028","2028-2029","2029-2030","2030-2031","2031-2032",
+  "2032-2033","2033-2034","2034-2035","2035-2036","2036-2037","2037-2038",
+  "2038-2039","2039-2040","2040-2041","2041-2042","2042-2043","2043-2044",
+  "2044-2045","2045-2046","2046-2047","2047-2048","2048-2049","2049-2050"
+];
+const ANNEE_DEFAUT = "2026-2027";
+
+function seedState(){
+  return { students: [], schedulePdfs: [], notesPdfs: [], resultatPdfs: [], rattrapagePdfs: [], communiquesPdfs: [] };
+}
+let state = seedState();
+let lockedYears = [];
+
+async function loadLockedYears(){
+  try{
+    const r = await fetch("/api/locked-years", { cache: "no-store" });
+    if(!r.ok){ lockedYears = []; return; }
+    const j = await r.json();
+    lockedYears = Array.isArray(j.years) ? j.years : [];
+  }catch(e){ lockedYears = []; }
+}
+
+async function loadRemote(){
+  const d = await api.call("GET", "/data");
+  state.students = d.students;
+  const byKind = k => d.docs.filter(x => x.kind === k);
+  state.schedulePdfs    = byKind("schedule");
+  state.notesPdfs       = byKind("notes");
+  state.resultatPdfs    = byKind("resultats");
+  state.rattrapagePdfs  = byKind("rattrapage");
+  state.communiquesPdfs = byKind("communiques");
+  const snapshot = loadDocsSnapshot();
+  if(snapshot && currentUser){ notif.detectNewDocs(snapshot); }
+  saveDocsSnapshot();
+}
+
+async function bootAfterAuth(){
+  const j = await api.call("GET", "/me");
+  currentUser = j.user;
+  await Promise.all([ loadRemote(), loadLockedYears() ]);
+  syncFiltersForStudent();
+}
+
+let currentUser = null;
+let authMode = "login";
+let authSuccessMsg = "";
+
+const AUTH_LOGO = `<img src="/inptic.jpg" alt="INPTIC">`;
+
+function authHeader(){
+  return `<div class="auth-logo">${AUTH_LOGO}<div><strong>INPTIC</strong><span>GI &amp; RT · L1 – L3</span></div></div>
+  <div class="auth-tabs">
+    <button class="auth-tab ${authMode==='login'?'active':''}" data-authtab="login">Connexion</button>
+    <button class="auth-tab ${authMode==='signup'?'active':''}" data-authtab="signup">Inscription</button>
+  </div>
+  <div id="authError"></div>
+  <div id="authSuccess">${authSuccessMsg ? `<div class="auth-success">${esc(authSuccessMsg)}</div>` : ""}</div>`;
+}
+
+function loginHtml(){
+  return `<div class="auth-card">
+    ${authHeader()}
+    <div class="field"><label>E-mail</label><input class="text-input" id="loginEmail" type="email" placeholder="vous@inptic.ga" autocomplete="username"></div>
+    <div class="field"><label>Mot de passe</label><input class="text-input" id="loginPassword" type="password" autocomplete="current-password"></div>
+    <button class="btn" id="btnLogin" style="width:100%; margin-top:4px;">Se connecter</button>
+  </div>`;
+}
+
+function signupHtml(){
+  return `<div class="auth-card">
+    ${authHeader()}
+    <div class="field-row">
+      <div class="field"><label>Nom</label><input class="text-input" id="suNom"></div>
+      <div class="field"><label>Prénom</label><input class="text-input" id="suPrenom"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Filière</label>
+        <select id="suFiliere">${FILIERES.map(f=>`<option value="${f}">${f}</option>`).join("")}</select>
+      </div>
+      <div class="field"><label>Niveau</label>
+        <select id="suNiveau">${NIVEAUX.map(n=>`<option value="${n}">${n}</option>`).join("")}</select>
+      </div>
+    </div>
+    <div class="field"><label>Année universitaire</label>
+      <select id="suAnnee">
+        ${ANNEES_UNIV.map(a => {
+          const isLocked = lockedYears.includes(a);
+          const isDefault = a === ANNEE_DEFAUT && !isLocked;
+          return `<option value="${a}" ${isDefault?"selected":""} ${isLocked?"disabled":""}>${a}${isLocked ? " 🔒 (verrouillée)" : ""}</option>`;
+        }).join("")}
+      </select>
+    </div>
+    <div class="field"><label>E-mail</label><input class="text-input" id="suEmail" type="email" autocomplete="username"></div>
+    <div class="field-row">
+      <div class="field"><label>Mot de passe</label><input class="text-input" id="suPassword" type="password" autocomplete="new-password"></div>
+      <div class="field"><label>Confirmer</label><input class="text-input" id="suPassword2" type="password" autocomplete="new-password"></div>
+    </div>
+    <button class="btn" id="btnSignup" style="width:100%; margin-top:4px;">S'inscrire</button>
+  </div>`;
+}
+
+function setAuthError(msg){
+  document.getElementById("authError").innerHTML = msg ? `<div class="auth-error">${esc(msg)}</div>` : "";
+}
+
+function renderAuthScreen(){
+  document.getElementById("app").classList.add("hidden");
+  const el = document.getElementById("authScreen");
+  el.classList.remove("hidden");
+  el.innerHTML = authMode==="login" ? loginHtml() : signupHtml();
+
+  el.querySelectorAll("[data-authtab]").forEach(btn => {
+    btn.onclick = () => { authMode = btn.dataset.authtab; authSuccessMsg = ""; renderAuthScreen(); };
+  });
+
+  if(authMode==="login"){
+    const doLogin = async () => {
+      const btn = document.getElementById("btnLogin");
+      const email = document.getElementById("loginEmail").value.trim().toLowerCase();
+      const pass = document.getElementById("loginPassword").value;
+      if(!email || !pass){ setAuthError("Saisissez votre e-mail et votre mot de passe."); return; }
+      btn.disabled = true; btn.textContent = "Connexion…";
+      try{
+        await api.login(email, pass);
+        await bootAfterAuth();
+        showApp();
+      }catch(err){
+        btn.disabled = false; btn.textContent = "Se connecter";
+        setAuthError(err.message || "Connexion impossible.");
+      }
+    };
+    document.getElementById("btnLogin").onclick = doLogin;
+    document.getElementById("loginPassword").addEventListener("keydown", (e)=>{ if(e.key==="Enter") doLogin(); });
+  } else {
+    document.getElementById("btnSignup").onclick = async () => {
+      const btn = document.getElementById("btnSignup");
+      const nom = document.getElementById("suNom").value.trim();
+      const prenom = document.getElementById("suPrenom").value.trim();
+      const filiere = document.getElementById("suFiliere").value;
+      const niveau = document.getElementById("suNiveau").value;
+      const annee = document.getElementById("suAnnee").value;
+      const email = document.getElementById("suEmail").value.trim().toLowerCase();
+      const pass = document.getElementById("suPassword").value;
+      const pass2 = document.getElementById("suPassword2").value;
+
+      if(!nom || !prenom || !email){ setAuthError("Merci de remplir tous les champs."); return; }
+      if(pass.length < 6){ setAuthError("Le mot de passe doit contenir au moins 6 caractères."); return; }
+      if(pass !== pass2){ setAuthError("Les mots de passe ne correspondent pas."); return; }
+      if(lockedYears.includes(annee)){
+        setAuthError(`L'année universitaire ${annee} est verrouillée. Contactez l'administrateur.`);
+        return;
+      }
+
+      btn.disabled = true; const label = btn.textContent; btn.textContent = "Création…";
+      try{
+        await api.signup({nom, prenom, filiere, niveau, annee, email, password: pass});
+        await bootAfterAuth();
+        showApp();
+      }catch(err){
+        btn.disabled = false; btn.textContent = label;
+        setAuthError(err.message || "Inscription impossible.");
+      }
+    };
+  }
+}
+
+function renderUserChip(){
+  const chip = document.getElementById("userChip");
+  const sidebarUser = document.getElementById("sidebarUser");
+  if(!currentUser){ chip.innerHTML=""; sidebarUser.innerHTML=""; return; }
+  const initials = (currentUser.prenom?.[0]||"") + (currentUser.nom?.[0]||"");
+  const roleLabel = ROLE_LABEL[currentUser.role];
+  chip.innerHTML = `<strong>${esc(currentUser.prenom)} ${esc(currentUser.nom)}</strong> <span class="role-pill ${currentUser.role}">${roleLabel}</span>`;
+  const student = state.students.find(s => s.id === currentUser.id);
+  const filiere = student ? student.filiere : (currentUser.filiere || "");
+  const niveau = student ? student.niveau : (currentUser.niveau || "");
+  const annee = student ? (student.annee || ANNEE_DEFAUT) : (currentUser.annee || "");
+  const extra = filiere && niveau ? ` · ${filiere} ${niveau}${annee ? " · "+annee : ""}` : "";
+  sidebarUser.innerHTML = `
+    <div class="avatar">${esc(initials.toUpperCase())}</div>
+    <div class="info">
+      <strong>${esc(currentUser.prenom)} ${esc(currentUser.nom)}</strong>
+      <span>${roleLabel}${extra}</span>
+    </div>
+  `;
+  document.querySelectorAll('.nav a[data-admin-only="true"]').forEach(a => {
+    a.style.display = isAdmin() ? "" : "none";
+  });
+}
+
+function syncFiltersForStudent(){
+  if(!currentUser) return;
+  if(currentUser.role === "etudiant"){
+    const student = state.students.find(s => s.id === currentUser.id);
+    if(student){
+      const annee = student.annee || ANNEE_DEFAUT;
+      uiState.emploi.filiere = student.filiere;
+      uiState.emploi.niveau = student.niveau;
+      uiState.emploi.annee = annee;
+      uiState.notes.filiere = student.filiere;
+      uiState.notes.niveau = student.niveau;
+      uiState.notes.annee = annee;
+      uiState.resultats.filiere = student.filiere;
+      uiState.resultats.niveau = student.niveau;
+      uiState.resultats.annee = annee;
+      uiState.rattrapage.filiere = student.filiere;
+      uiState.rattrapage.niveau = student.niveau;
+      uiState.rattrapage.annee = annee;
+    }
+  }
+}
+
+function showApp(){
+  document.getElementById("authScreen").classList.add("hidden");
+  document.getElementById("app").classList.remove("hidden");
+  renderUserChip();
+  syncFiltersForStudent();
+  if(!location.hash) location.hash = "#/emploi";
+  renderRoute();
+  askNotifPermissionOnce();
+  subscribePushIfPossible();
+}
+
+async function logout(){
+  api.setToken(null);
+  currentUser = null;
+  state = seedState();
+  authMode = "login";
+  authSuccessMsg = "";
+  location.hash = "";
+  renderAuthScreen();
+}
+
+function esc(str){
+  return String(str==null?"":str).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function isAdmin(){ return !!(currentUser && currentUser.role === "admin"); }
+function fmtSize(bytes){
+  if(bytes < 1024) return bytes + " o";
+  if(bytes < 1024*1024) return (bytes/1024).toFixed(0) + " Ko";
+  return (bytes/(1024*1024)).toFixed(1) + " Mo";
+}
+function fmtDate(iso){
+  const d = new Date(iso);
+  return d.toLocaleDateString("fr-FR", {day:"2-digit", month:"2-digit", year:"numeric"});
+}
+function toast(msg){
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(()=> el.classList.remove("show"), 2200);
+}
+
+function downloadRemotePdf(pdf){
+  if(!api.token){ toast("Session expirée. Reconnectez-vous."); return; }
+  const url = "/api/docs/" + encodeURIComponent(pdf.id) + "/file?token=" + encodeURIComponent(api.token) + "&dl=1";
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = pdf.nomFichier || "document.pdf";
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  toast("Téléchargement…");
+}
+
+/* ================= PDF.js — Chargement + rendu canvas (iOS compatible) ================= */
+
+async function loadPdfJsLib(){
+  if(window.pdfjsLib) return window.pdfjsLib;
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+    script.onload = () => {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+      resolve(window.pdfjsLib);
+    };
+    script.onerror = () => reject(new Error("Impossible de charger PDF.js"));
+    document.head.appendChild(script);
+  });
+}
+
+async function openRemotePdf(pdf){
+  if(!api.token){ toast("Session expirée. Reconnectez-vous."); return; }
+
+  const existing = document.getElementById("pdfMobileViewer");
+  if(existing) existing.remove();
+
+  const url = "/api/docs/" + encodeURIComponent(pdf.id) + "/file?token=" + encodeURIComponent(api.token);
+  const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+
+  /* ============ VISIONNEUSE PDF.js (mobile / PWA iOS) ============ */
+  if(isMobile){
+    try { history.pushState({ pdfViewer: true }, ""); } catch(e){}
+
+    const viewer = document.createElement("div");
+    viewer.id = "pdfMobileViewer";
+    viewer.innerHTML = `
+      <div class="pdf-viewer-header">
+        <span class="pdf-viewer-title">${esc(pdf.titre || "Document")}</span>
+        <button class="pdf-viewer-close" id="closePdfViewerBtn">Fermer</button>
+      </div>
+      <div id="pdfCanvasContainer" class="pdf-canvas-container">
+        <div class="pdf-loading">
+          <div class="pdf-spinner"></div>
+          <div style="margin-top:12px;font-size:14px;">Chargement du document…</div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(viewer);
+    document.body.classList.add("modal-open");
+
+    let closed = false;
+    let renderingTask = null;
+
+    const closeViewer = (fromPopstate) => {
+      if(closed) return;
+      closed = true;
+      try { if(renderingTask && renderingTask.cancel) renderingTask.cancel(); } catch(e){}
+      const el = document.getElementById("pdfMobileViewer");
+      if(el) el.remove();
+      document.body.classList.remove("modal-open");
+      if(!fromPopstate){ try { history.back(); } catch(e){} }
+      setTimeout(() => { try { window.focus(); } catch(e){} }, 60);
+    };
+
+    document.getElementById("closePdfViewerBtn").onclick = () => closeViewer(false);
+
+    const escHandler = (e) => {
+      if(e.key === "Escape"){ closeViewer(false); document.removeEventListener("keydown", escHandler); }
+    };
+    document.addEventListener("keydown", escHandler);
+
+    const popHandler = () => {
+      if(document.getElementById("pdfMobileViewer")){
+        closeViewer(true);
+        window.removeEventListener("popstate", popHandler);
+      }
+    };
+    window.addEventListener("popstate", popHandler);
+
+    (async () => {
+      const container = document.getElementById("pdfCanvasContainer");
+      try {
+        const pdfjsLib = await loadPdfJsLib();
+        const loadingTask = pdfjsLib.getDocument({ url, withCredentials: false });
+        const pdfDoc = await loadingTask.promise;
+
+        container.innerHTML = "";
+        const totalPages = pdfDoc.numPages;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const maxWidth = Math.max(280, container.clientWidth - 20);
+
+        for (let pageNum = 1; pageNum <= totalPages; pageNum++){
+          if(closed) return;
+          const page = await pdfDoc.getPage(pageNum);
+          const baseViewport = page.getViewport({ scale: 1 });
+          const scale = maxWidth / baseViewport.width;
+          const viewport = page.getViewport({ scale });
+
+          const canvas = document.createElement("canvas");
+          canvas.className = "pdf-page-canvas";
+          canvas.width = Math.floor(viewport.width * dpr);
+          canvas.height = Math.floor(viewport.height * dpr);
+          canvas.style.width = Math.floor(viewport.width) + "px";
+          canvas.style.height = Math.floor(viewport.height) + "px";
+
+          const ctx = canvas.getContext("2d");
+          ctx.scale(dpr, dpr);
+
+          container.appendChild(canvas);
+
+          renderingTask = page.render({ canvasContext: ctx, viewport });
+          await renderingTask.promise;
+          renderingTask = null;
+        }
+      } catch(err){
+        if(closed) return;
+        console.error("PDF render error:", err);
+        container.innerHTML = `
+          <div style="padding:40px 20px;text-align:center;color:#93A3BD;">
+            <div style="font-size:48px;margin-bottom:12px;">📄</div>
+            <p style="margin-bottom:20px;font-size:14px;">Impossible d'afficher le document.</p>
+            <a href="${url}" target="_blank" rel="noopener" style="background:#5B8DEF;color:#0B1524;padding:12px 20px;border-radius:8px;font-weight:600;text-decoration:none;font-size:14px;">Ouvrir dans un nouvel onglet</a>
+          </div>
+        `;
+      }
+    })();
+
+    return;
+  }
+
+  /* ============ DESKTOP : comportement inchangé ============ */
+  const overlay = document.createElement("div");
+  overlay.id = "pdfLoaderOverlay";
+  overlay.style.cssText = `
+    position:fixed; inset:0; z-index:9999;
+    background:rgba(11,21,36,.92);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:16px; color:#E8ECF2; font-family:inherit;
+  `;
+  overlay.innerHTML = `
+    <div style="width:44px;height:44px;border:3px solid rgba(255,255,255,.15);border-top-color:#5B8DEF;border-radius:50%;animation:pdfSpin .8s linear infinite;"></div>
+    <div style="font-size:14px;font-weight:600;">Ouverture du document…</div>
+    <div style="font-size:12px;color:#93A3BD;">${esc(pdf.titre || "")}</div>
+  `;
+  if(!document.getElementById("pdfLoaderStyle")){
+    const style = document.createElement("style");
+    style.id = "pdfLoaderStyle";
+    style.textContent = "@keyframes pdfSpin{to{transform:rotate(360deg)}}";
+    document.head.appendChild(style);
+  }
+  document.body.appendChild(overlay);
+  const cleanup = () => {
+    const el = document.getElementById("pdfLoaderOverlay");
+    if(el) el.remove();
+  };
+  setTimeout(cleanup, 15000);
+  const win = window.open(url, "_blank");
+  if(!win){ window.location.href = url; cleanup(); }
+  else { setTimeout(cleanup, 800); }
+}
+
+function preloadRecentPdfs(){
+  if(!api.token) return;
+  const all = state.schedulePdfs
+    .concat(state.notesPdfs, state.resultatPdfs, state.rattrapagePdfs, state.communiquesPdfs)
+    .sort((a,b) => b.dateAjout.localeCompare(a.dateAjout))
+    .slice(0, 3);
+  all.forEach(pdf => {
+    const url = "/api/docs/" + encodeURIComponent(pdf.id) + "/file?token=" + encodeURIComponent(api.token);
+    if(document.querySelector('link[href="' + url + '"]')) return;
+    const link = document.createElement("link");
+    link.rel = "prefetch";
+    link.href = url;
+    link.as = "document";
+    link.crossOrigin = "anonymous";
+    document.head.appendChild(link);
+  });
+}
+
+function openModal(html, onMount){
+  const root = document.getElementById("modalRoot");
+  root.innerHTML = `<div class="modal-backdrop" id="modalBackdrop"><div class="modal" role="dialog" aria-modal="true">${html}</div></div>`;
+  document.body.classList.add("modal-open");
+  document.getElementById("modalBackdrop").addEventListener("mousedown", (e)=>{
+    if(e.target.id === "modalBackdrop") closeModal();
+  });
+  document.addEventListener("keydown", escCloseOnce);
+  if(onMount) onMount(root);
+}
+function escCloseOnce(e){ if(e.key==="Escape"){ closeModal(); } }
+function closeModal(){
+  document.getElementById("modalRoot").innerHTML = "";
+  document.body.classList.remove("modal-open");
+  document.removeEventListener("keydown", escCloseOnce);
+}
+
+function studentModal(existing){
+  const isEdit = !!existing;
+  const s = existing || {matricule:"", nom:"", prenom:"", filiere:"GI", niveau:"L1", email:"", tel:""};
+  openModal(`
+    <h3>${isEdit?"Modifier l'étudiant":"Ajouter un étudiant"}</h3>
+    <p class="modal-sub">${isEdit?"Mettre à jour les informations de l'étudiant.":"Renseignez les informations."}</p>
+    <div class="field"><label>Matricule</label><input class="text-input" id="f_matricule" value="${esc(s.matricule)}" placeholder="ex. GI-L1-007"></div>
+    <div class="field-row">
+      <div class="field"><label>Nom</label><input class="text-input" id="f_nom" value="${esc(s.nom)}"></div>
+      <div class="field"><label>Prénom</label><input class="text-input" id="f_prenom" value="${esc(s.prenom)}"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Filière</label>
+        <select id="f_filiere">${FILIERES.map(f=>`<option value="${f}" ${s.filiere===f?"selected":""}>${f}</option>`).join("")}</select>
+      </div>
+      <div class="field"><label>Niveau</label>
+        <select id="f_niveau">${NIVEAUX.map(n=>`<option value="${n}" ${s.niveau===n?"selected":""}>${n}</option>`).join("")}</select>
+      </div>
+    </div>
+    <div class="field"><label>E-mail</label><input class="text-input" id="f_email" value="${esc(s.email)}"></div>
+    <div class="field"><label>Téléphone</label><input class="text-input" id="f_tel" value="${esc(s.tel)}"></div>
+    <div class="modal-actions">
+      <button class="btn secondary" id="f_cancel">Annuler</button>
+      <button class="btn" id="f_save">${isEdit?"Enregistrer":"Ajouter"}</button>
+    </div>
+  `, (root)=>{
+    root.querySelector("#f_cancel").onclick = closeModal;
+    root.querySelector("#f_save").onclick = async ()=>{
+      const nom = root.querySelector("#f_nom").value.trim();
+      const prenom = root.querySelector("#f_prenom").value.trim();
+      if(!nom || !prenom){ toast("Le nom et le prénom sont requis"); return; }
+      const email = root.querySelector("#f_email").value.trim().toLowerCase();
+      const row = {
+        matricule: root.querySelector("#f_matricule").value.trim(),
+        nom, prenom,
+        filiere: root.querySelector("#f_filiere").value,
+        niveau: root.querySelector("#f_niveau").value,
+        email, tel: root.querySelector("#f_tel").value.trim()
+      };
+      const btn = root.querySelector("#f_save");
+      btn.disabled = true;
+      try{
+        if(isEdit) await api.call("PATCH", "/students/" + s.id, {json: row});
+        else await api.call("POST", "/students", {json: row});
+        await loadRemote();
+        closeModal(); renderRoute();
+        toast(isEdit?"Étudiant mis à jour":"Étudiant ajouté");
+      }catch(err){
+        btn.disabled = false;
+        toast(err.message || "Échec de l'enregistrement");
+      }
+    };
+  });
+}
+
+function pdfUploadModal(kind, filiere, niveau, annee){
+  const MAX_BYTES = MAX_PDF_BYTES;
+  let cfg;
+  if (kind === "notes") cfg = {title:"Ajouter un relevé de notes", placeholder:"ex. Relevé de notes — Semestre 1", doneMsg:"Relevé de notes ajouté"};
+  else if (kind === "resultats") cfg = {title:"Ajouter un résultat de semestre", placeholder:"ex. Résultat Semestre 1", doneMsg:"Résultat ajouté"};
+  else if (kind === "rattrapage") cfg = {title:"Ajouter un relevé de rattrapage", placeholder:"ex. Relevé de rattrapage — Semestre 1", doneMsg:"Relevé de rattrapage ajouté"};
+  else if (kind === "communiques") cfg = {title:"Ajouter un communiqué", placeholder:"ex. Réunion de rentrée 2026", doneMsg:"Communiqué publié"};
+  else cfg = {title:"Ajouter l'emploi du temps", placeholder:"ex. Emploi du temps — Semestre 1", doneMsg:"Emploi du temps ajouté"};
+
+  const subTitle = kind === "communiques"
+    ? `<p class="modal-sub"> Visible par <strong>tous les étudiants</strong> (toutes filières, tous niveaux)</p>`
+    : `<p class="modal-sub">${FILIERE_LABEL[filiere]} · ${niveau} · ${annee}</p>`;
+
+  openModal(`
+    <h3>${cfg.title}</h3>
+    ${subTitle}
+    <div class="field"><label>Fichier PDF</label><input class="text-input" id="f_file" type="file" accept="application/pdf,.pdf"></div>
+    <div class="field"><label>Titre affiché</label><input class="text-input" id="f_titre" placeholder="${cfg.placeholder}"></div>
+    <div class="field"><label>Message / Commentaire (optionnel)</label><textarea class="text-input" id="f_commentaire" placeholder="Ex: Bonsoir à tous..."></textarea></div>
+    <p class="admin-only-note">Taille maximale : 5 Mo.</p>
+    <div class="modal-actions">
+      <button class="btn secondary" id="f_cancel">Annuler</button>
+      <button class="btn" id="f_save">Ajouter</button>
+    </div>
+  `, (root)=>{
+    root.querySelector("#f_cancel").onclick = closeModal;
+    root.querySelector("#f_file").addEventListener("change", (e)=>{
+      const file = e.target.files[0];
+      const titreField = root.querySelector("#f_titre");
+      if(file && !titreField.value){ titreField.value = file.name.replace(/\.pdf$/i, ""); }
+    });
+    root.querySelector("#f_save").onclick = ()=>{
+      const file = root.querySelector("#f_file").files[0];
+      if(!file){ toast("Choisissez un fichier PDF"); return; }
+      const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+      if(!isPdf){ toast("Le fichier doit être un PDF"); return; }
+      if(file.size > MAX_BYTES){ toast("Fichier trop volumineux (max 5 Mo)"); return; }
+      const titre = root.querySelector("#f_titre").value.trim() || file.name.replace(/\.pdf$/i, "");
+      const commentaire = root.querySelector("#f_commentaire").value.trim();
+      const saveBtn = root.querySelector("#f_save");
+      saveBtn.disabled = true;
+      (async () => {
+        try{
+          const formData = new FormData();
+          formData.append("file", file);
+          formData.append("kind", kind);
+          formData.append("filiere", filiere);
+          formData.append("niveau", niveau);
+          formData.append("annee", annee || ANNEE_DEFAUT);
+          formData.append("titre", titre);
+          formData.append("nom", file.name);
+          formData.append("commentaire", commentaire);
+          await api.call("POST", "/docs", { body: formData });
+          await loadRemote();
+          closeModal(); renderRoute(); toast(cfg.doneMsg);
+        }catch(err){
+          saveBtn.disabled = false;
+          toast(err.message || "Échec de l'envoi du fichier");
+        }
+      })();
+    };
+  });
+}
+
+function purgeYearModal(annee) {
+  openModal(`
+    <h3 style="color:var(--red); margin-bottom:6px;">⚠️ Suppression de fin d'année</h3>
+    <p class="modal-sub">Vous êtes sur le point de supprimer <strong>définitivement</strong> toutes les données de l'année <strong>${annee}</strong>.</p>
+    <div style="background:rgba(232,99,124,.1); border:1px solid rgba(232,99,124,.3); padding:12px; border-radius:8px; margin-bottom:18px; font-size:13px; color:var(--red);">
+      <strong>Attention :</strong> Cette action va supprimer :
+      <ul style="margin:8px 0 0 20px; padding:0;">
+        <li>Tous les étudiants</li><li>Tous les emplois du temps</li>
+        <li>Tous les relevés de notes</li><li>Tous les relevés de rattrapage</li>
+        <li>Tous les résultats de semestres</li>
+      </ul>
+      <br>L'année sera ensuite <strong>verrouillée</strong>.
+      <br><br>Cette action est <strong>irréversible</strong>.
+    </div>
+    <div class="field">
+      <label>Pour confirmer, tapez l'année <strong>${annee}</strong> ci-dessous :</label>
+      <input class="text-input" id="confirmPurgeInput" placeholder="${annee}" autocomplete="off">
+    </div>
+    <div class="modal-actions">
+      <button class="btn secondary" id="f_cancel">Annuler</button>
+      <button class="btn danger" id="btnConfirmPurge" style="padding:9px 15px; font-size:13.5px;" disabled>Supprimer et verrouiller</button>
+    </div>
+  `, (root) => {
+    const input = root.querySelector("#confirmPurgeInput");
+    const btn = root.querySelector("#btnConfirmPurge");
+    input.addEventListener("input", () => { btn.disabled = input.value.trim() !== annee; });
+    root.querySelector("#f_cancel").onclick = closeModal;
+    btn.onclick = async () => {
+      btn.disabled = true; btn.textContent = "Suppression en cours…";
+      try {
+        await api.call("DELETE", "/admin/purge-year/" + annee);
+        closeModal();
+        await loadRemote();
+        await loadLockedYears();
+        renderRoute();
+        toast(`✅ Données de ${annee} supprimées. Année verrouillée.`);
+      } catch(err) {
+        btn.disabled = false; btn.textContent = "Supprimer et verrouiller";
+        toast(err.message || "Erreur lors de la suppression de l'année");
+      }
+    };
+  });
+}
+
+function purgeCommuniquesModal() {
+  const count = state.communiquesPdfs.length;
+  openModal(`
+    <h3 style="color:var(--red); margin-bottom:6px;">⚠️ Supprimer tous les communiqués</h3>
+    <p class="modal-sub">Vous êtes sur le point de supprimer <strong>définitivement</strong> les <strong>${count}</strong> communiqué(s) publié(s).</p>
+    <div style="background:rgba(232,99,124,.1); border:1px solid rgba(232,99,124,.3); padding:12px; border-radius:8px; margin-bottom:18px; font-size:13px; color:var(--red);">
+      <strong>Attention :</strong> Cette action est <strong>irréversible</strong>.<br>
+      Tous les PDF publiés dans <strong>Communiqués</strong> seront supprimés pour <strong>tous les étudiants</strong>.
+    </div>
+    <div class="field">
+      <label>Pour confirmer, tapez <strong>SUPPRIMER</strong> ci-dessous :</label>
+      <input class="text-input" id="confirmPurgeComsInput" placeholder="SUPPRIMER" autocomplete="off">
+    </div>
+    <div class="modal-actions">
+      <button class="btn secondary" id="f_cancel">Annuler</button>
+      <button class="btn danger" id="btnConfirmPurgeComs" style="padding:9px 15px; font-size:13.5px;" disabled>Supprimer tout</button>
+    </div>
+  `, (root) => {
+    const input = root.querySelector("#confirmPurgeComsInput");
+    const btn = root.querySelector("#btnConfirmPurgeComs");
+    input.addEventListener("input", () => { btn.disabled = input.value.trim().toUpperCase() !== "SUPPRIMER"; });
+    root.querySelector("#f_cancel").onclick = closeModal;
+    btn.onclick = async () => {
+      btn.disabled = true; btn.textContent = "Suppression en cours…";
+      try {
+        const r = await api.call("DELETE", "/admin/purge-communiques");
+        closeModal();
+        await loadRemote();
+        renderRoute();
+        toast(`✅ ${r.count} communiqué(s) supprimé(s)`);
+      } catch (err) {
+        btn.disabled = false; btn.textContent = "Supprimer tout";
+        toast(err.message || "Erreur lors de la suppression");
+      }
+    };
+  });
+}
+
+const uiState = {
+  students:{filiere:"", niveau:"", q:""},
+  notes:{filiere:"GI", niveau:"L1", annee:ANNEE_DEFAUT},
+  resultats:{filiere:"GI", niveau:"L1", annee:ANNEE_DEFAUT},
+  emploi:{filiere:"GI", niveau:"L1", annee:ANNEE_DEFAUT},
+  rattrapage:{filiere:"GI", niveau:"L1", annee:ANNEE_DEFAUT}
+};
+
+function renderStudents(){
+  const f = uiState.students;
+  let list = state.students.slice();
+  if(f.filiere) list = list.filter(s=>s.filiere===f.filiere);
+  if(f.niveau) list = list.filter(s=>s.niveau===f.niveau);
+  if(f.q){
+    const q = f.q.toLowerCase();
+    list = list.filter(s => (s.nom+" "+s.prenom+" "+s.matricule).toLowerCase().includes(q));
+  }
+  list.sort((a,b)=> a.nom.localeCompare(b.nom));
+  const rows = list.map(s => `
+    <tr>
+      <td>${esc(s.nom)}</td>
+      <td>${esc(s.prenom)}</td>
+      <td><span class="tag ${s.filiere.toLowerCase()}">${s.filiere}</span></td>
+      <td>${s.niveau}</td>
+      <td>${esc(s.annee) || ANNEE_DEFAUT}</td>
+      <td>${esc(s.email)||"—"}</td>
+      <td>
+        <div class="row-actions">
+          <button class="icon-btn" data-action="delete-student" data-id="${s.id}" aria-label="Supprimer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg>
+          </button>
+        </div>
+      </td>
+    </tr>
+  `).join("");
+  return `
+    <div class="filter-bar">
+      <select id="fStudFiliere"><option value="">Toutes les filières</option>${FILIERES.map(x=>`<option value="${x}" ${f.filiere===x?"selected":""}>${x}</option>`).join("")}</select>
+      <select id="fStudNiveau"><option value="">Tous les niveaux</option>${NIVEAUX.map(x=>`<option value="${x}" ${f.niveau===x?"selected":""}>${x}</option>`).join("")}</select>
+      <input class="text-input" id="fStudSearch" placeholder="Rechercher un étudiant…" value="${esc(f.q)}">
+    </div>
+    <div class="panel">
+      ${list.length ? `<div class="table-scroll"><table class="data">
+        <thead><tr><th>Nom</th><th>Prénom</th><th>Filière</th><th>Niveau</th><th>Année</th><th>E-mail</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>` : emptyState("Aucun étudiant pour le moment.")}
+    </div>
+  `;
+}
+
+function pdfRows(list, kind, admin){
+  const isEtudiant = currentUser && currentUser.role === "etudiant";
+  return list.map((p, index) => `
+    <div class="pdf-row">
+      <span class="pdf-num">${index + 1}</span>
+      <div class="pdf-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/>
+          <path d="M14 3v5h5"/>
+          <text x="8" y="18.5" font-size="6.5" font-weight="700" fill="#60A5FA" stroke="none">PDF</text>
+        </svg>
+      </div>
+      <div class="pdf-meta">
+        <div class="pdf-name">${esc(p.titre)}</div>
+        ${p.commentaire ? `<div class="pdf-commentaire">${esc(p.commentaire)}</div>` : ""}
+        <div class="pdf-sub">Ajouté le ${fmtDate(p.dateAjout)} · ${fmtSize(p.taille)}</div>
+      </div>
+      <div class="pdf-actions">
+        <button class="pdf-btn view" data-action="open-pdf" data-kind="${kind}" data-id="${p.id}" aria-label="Voir">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span class="pdf-btn-label">Voir</span>
+        </button>
+        ${!isEtudiant ? `<button class="pdf-btn download" data-action="download-pdf" data-kind="${kind}" data-id="${p.id}" aria-label="Télécharger">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+          <span class="pdf-btn-label">Télécharger</span>
+        </button>` : ""}
+        ${admin ? `<button class="pdf-btn delete" data-action="delete-pdf" data-kind="${kind}" data-id="${p.id}" aria-label="Supprimer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg>
+          <span class="pdf-btn-label">Supprimer</span>
+        </button>` : ""}
+      </div>
+    </div>
+  `).join("");
+}
+
+function renderNotes(){
+  const u = uiState.notes;
+  const admin = isAdmin();
+  const list = state.notesPdfs
+    .filter(p => p.filiere===u.filiere && p.niveau===u.niveau && (p.annee || ANNEE_DEFAUT) === u.annee)
+    .sort((a,b) => b.dateAjout.localeCompare(a.dateAjout));
+  const filterBar = admin
+    ? `<div class="filter-bar">
+        <select id="fNoteFiliere">${FILIERES.map(f=>`<option value="${f}" ${u.filiere===f?"selected":""}>${FILIERE_LABEL[f]}</option>`).join("")}</select>
+        <select id="fNoteNiveau">${NIVEAUX.map(n=>`<option value="${n}" ${u.niveau===n?"selected":""}>${n}</option>`).join("")}</select>
+        <select id="fNoteAnnee">${ANNEES_UNIV.map(a=>`<option value="${a}" ${u.annee===a?"selected":""}>${a}</option>`).join("")}</select>
+        <div style="margin-left:auto; display:flex; gap:10px;">
+          <button class="btn danger" id="btnPurgeYear">⚠️ Fin d'année</button>
+          <button class="btn" id="btnAddNotePdf">+ Ajouter un relevé</button>
+        </div>
+      </div>`
+    : `<div class="filter-bar"><span class="locked-filter">Filière &amp; niveau : <strong>${FILIERE_LABEL[u.filiere]} · ${u.niveau} · ${u.annee}</strong></span></div>`;
+  return `
+    ${filterBar}
+    <div class="panel">
+      <div class="panel-head"><div><h2>${FILIERE_LABEL[u.filiere]} · ${u.niveau} · ${u.annee}</h2></div></div>
+      ${list.length ? pdfRows(list, "notes", admin) : emptyState(admin ? "Aucun relevé de notes déposé pour cette année." : "Aucun relevé disponible.")}
+    </div>
+  `;
+}
+
+function renderRattrapage(){
+  const u = uiState.rattrapage;
+  const admin = isAdmin();
+  const list = state.rattrapagePdfs
+    .filter(p => p.filiere===u.filiere && p.niveau===u.niveau && (p.annee || ANNEE_DEFAUT) === u.annee)
+    .sort((a,b) => b.dateAjout.localeCompare(a.dateAjout));
+  const filterBar = admin
+    ? `<div class="filter-bar">
+        <select id="fRatFiliere">${FILIERES.map(f=>`<option value="${f}" ${u.filiere===f?"selected":""}>${FILIERE_LABEL[f]}</option>`).join("")}</select>
+        <select id="fRatNiveau">${NIVEAUX.map(n=>`<option value="${n}" ${u.niveau===n?"selected":""}>${n}</option>`).join("")}</select>
+        <select id="fRatAnnee">${ANNEES_UNIV.map(a=>`<option value="${a}" ${u.annee===a?"selected":""}>${a}</option>`).join("")}</select>
+        <div style="margin-left:auto; display:flex; gap:10px;">
+          <button class="btn danger" id="btnPurgeYear">⚠️ Fin d'année</button>
+          <button class="btn" id="btnAddRattrapagePdf">+ Ajouter un rattrapage</button>
+        </div>
+      </div>`
+    : `<div class="filter-bar"><span class="locked-filter">Filière &amp; niveau : <strong>${FILIERE_LABEL[u.filiere]} · ${u.niveau} · ${u.annee}</strong></span></div>`;
+  return `
+    ${filterBar}
+    <div class="panel">
+      <div class="panel-head"><div><h2>${FILIERE_LABEL[u.filiere]} · ${u.niveau} · ${u.annee}</h2></div></div>
+      ${list.length ? pdfRows(list, "rattrapage", admin) : emptyState(admin ? "Aucun relevé de rattrapage déposé pour cette année." : "Aucun relevé de rattrapage disponible.")}
+    </div>
+  `;
+}
+
+function renderResultats(){
+  const u = uiState.resultats;
+  const admin = isAdmin();
+  const list = state.resultatPdfs
+    .filter(p => p.filiere===u.filiere && p.niveau===u.niveau && (p.annee || ANNEE_DEFAUT) === u.annee)
+    .sort((a,b) => b.dateAjout.localeCompare(a.dateAjout));
+  const filterBar = admin
+    ? `<div class="filter-bar">
+        <select id="fResFiliere">${FILIERES.map(f=>`<option value="${f}" ${u.filiere===f?"selected":""}>${FILIERE_LABEL[f]}</option>`).join("")}</select>
+        <select id="fResNiveau">${NIVEAUX.map(n=>`<option value="${n}" ${u.niveau===n?"selected":""}>${n}</option>`).join("")}</select>
+        <select id="fResAnnee">${ANNEES_UNIV.map(a=>`<option value="${a}" ${u.annee===a?"selected":""}>${a}</option>`).join("")}</select>
+        <div style="margin-left:auto; display:flex; gap:10px;">
+          <button class="btn danger" id="btnPurgeYear">⚠️ Fin d'année</button>
+          <button class="btn" id="btnAddResultatPdf">+ Ajouter un résultat</button>
+        </div>
+      </div>`
+    : `<div class="filter-bar"><span class="locked-filter">Filière &amp; niveau : <strong>${FILIERE_LABEL[u.filiere]} · ${u.niveau} · ${u.annee}</strong></span></div>`;
+  return `
+    ${filterBar}
+    <div class="panel">
+      <div class="panel-head"><div><h2>${FILIERE_LABEL[u.filiere]} · ${u.niveau} · ${u.annee}</h2></div></div>
+      ${list.length ? pdfRows(list, "resultats", admin) : emptyState(admin ? "Aucun résultat déposé." : "Aucun résultat disponible.")}
+    </div>
+  `;
+}
+
+function renderEmploi(){
+  const u = uiState.emploi;
+  const admin = isAdmin();
+  const list = state.schedulePdfs
+    .filter(p => p.filiere===u.filiere && p.niveau===u.niveau && (p.annee || ANNEE_DEFAUT) === u.annee)
+    .sort((a,b) => b.dateAjout.localeCompare(a.dateAjout));
+  const filterBar = admin
+    ? `<div class="filter-bar">
+        <select id="fEmpFiliere">${FILIERES.map(f=>`<option value="${f}" ${u.filiere===f?"selected":""}>${FILIERE_LABEL[f]}</option>`).join("")}</select>
+        <select id="fEmpNiveau">${NIVEAUX.map(n=>`<option value="${n}" ${u.niveau===n?"selected":""}>${n}</option>`).join("")}</select>
+        <select id="fEmpAnnee">${ANNEES_UNIV.map(a=>`<option value="${a}" ${u.annee===a?"selected":""}>${a}</option>`).join("")}</select>
+        <div style="margin-left:auto; display:flex; gap:10px;">
+          <button class="btn danger" id="btnPurgeYear">⚠️ Fin d'année</button>
+          <button class="btn" id="btnAddPdf">+ Ajouter un PDF</button>
+        </div>
+      </div>`
+    : `<div class="filter-bar"><span class="locked-filter">Filière &amp; niveau : <strong>${FILIERE_LABEL[u.filiere]} · ${u.niveau} · ${u.annee}</strong></span></div>`;
+  return `
+    ${filterBar}
+    <div class="panel">
+      <div class="panel-head"><div><h2>${FILIERE_LABEL[u.filiere]} · ${u.niveau} · ${u.annee}</h2></div></div>
+      ${list.length ? pdfRows(list, "schedule", admin) : emptyState(admin ? "Aucun emploi du temps déposé." : "Aucun emploi du temps disponible.")}
+    </div>
+  `;
+}
+
+function renderCommuniques(){
+  const admin = isAdmin();
+  const list = state.communiquesPdfs.slice().sort((a,b) => b.dateAjout.localeCompare(a.dateAjout));
+  const filterBar = admin
+    ? `<div class="filter-bar">
+        <span class="locked-filter">Visible par <strong>tous les étudiants</strong></span>
+        <div style="margin-left:auto; display:flex; gap:10px;">
+          ${list.length ? `<button class="btn danger" id="btnPurgeCommuniques" style="padding:9px 15px; font-size:13.5px;">🗑️ Tout supprimer</button>` : ""}
+          <button class="btn" id="btnAddCommunique">+ Ajouter un communiqué</button>
+        </div>
+      </div>`
+    : `<div class="filter-bar"><span class="locked-filter">📢 Annonces officielles de l'INPTIC</span></div>`;
+  return `
+    ${filterBar}
+    <div class="panel">
+      <div class="panel-head"><div><h2>Communiqués officiels</h2><p>Annonces visibles par tous les étudiants.</p></div></div>
+      ${list.length ? pdfRows(list, "communiques", admin) : emptyState(admin ? "Aucun communiqué publié." : "Aucun communiqué pour le moment.")}
+    </div>
+  `;
+}
+
+function renderCompte(){
+  if(!currentUser) return emptyState("Non connecté.");
+  const admin = isAdmin();
+  if(admin){
+    const lockedListHtml = lockedYears.length
+      ? lockedYears.map(a => `
+          <div class="pdf-row" style="padding:12px 14px;">
+            <span style="font-size:20px;flex-shrink:0;">🔒</span>
+            <div class="pdf-meta">
+              <div class="pdf-name">${esc(a)}</div>
+              <div class="pdf-sub">Inscriptions bloquées</div>
+            </div>
+            <div class="pdf-actions">
+              <button class="btn secondary small" data-action="unlock-year" data-annee="${esc(a)}">🔓 Déverrouiller</button>
+            </div>
+          </div>`).join("")
+      : `<div class="admin-only-note">Aucune année verrouillée pour le moment.</div>`;
+    return `
+      <div class="panel">
+        <div class="panel-head"><div><h2>Mon compte administrateur</h2></div></div>
+        <div class="field"><label>Nom complet</label><div>${esc(currentUser.prenom)} ${esc(currentUser.nom)}</div></div>
+        <div class="field"><label>E-mail</label><div>${esc(currentUser.email)}</div></div>
+        <div class="field"><label>Rôle</label><div><span class="role-pill admin">Admin</span></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div><h2>Années universitaires verrouillées</h2><p>Les étudiants ne peuvent pas s'inscrire pour ces années.</p></div></div>
+        ${lockedListHtml}
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div><h2>Notifications push</h2><p>Recevez des alertes même quand l'app est fermée.</p></div></div>
+        <div id="pushStatus"></div>
+      </div>
+    `;
+  }
+  const student = state.students.find(s => s.id === currentUser.id);
+  if(!student) return emptyState("Profil étudiant introuvable.");
+  const anneeEnCours = student.annee || ANNEE_DEFAUT;
+  const niveaux = ["L1", "L2", "L3"];
+  const idx = niveaux.indexOf(student.niveau);
+  const nextNiveau = idx < niveaux.length - 1 ? niveaux[idx + 1] : null;
+  const [a, b] = anneeEnCours.split("-").map(Number);
+  const nextAnnee = `${a + 1}-${b + 1}`;
+  return `
+    <div class="panel">
+      <div class="panel-head"><div><h2>Mes informations</h2></div></div>
+      <div class="field"><label>Nom</label><div>${esc(student.nom)}</div></div>
+      <div class="field"><label>Prénom</label><div>${esc(student.prenom)}</div></div>
+      <div class="field"><label>Filière</label><div><span class="tag ${student.filiere.toLowerCase()}">${student.filiere}</span> ${FILIERE_LABEL[student.filiere]}</div></div>
+      <div class="field"><label>Niveau</label><div><strong>${student.niveau}</strong></div></div>
+      <div class="field"><label>Année</label><div><strong>${anneeEnCours}</strong></div></div>
+      <div class="field"><label>E-mail</label><div>${esc(student.email) || "—"}</div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div><h2>Passage au niveau supérieur</h2>
+        <p>Votre filière (<strong>${student.filiere}</strong>) restera identique.<br>
+        • <strong>Admission</strong> : niveau <strong>${student.niveau}</strong> → <strong>${nextNiveau || "—"}</strong> · année <strong>${nextAnnee}</strong><br>
+        • <strong>Redoublement</strong> : niveau <strong>${student.niveau}</strong> conservé · année <strong>${nextAnnee}</strong></p>
+      </div></div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        ${nextNiveau ? `<button class="btn" id="btnPassSelf" data-annee="${anneeEnCours}">✅ Je suis admis — Passer en ${nextNiveau} (${nextAnnee})</button>` : `<button class="btn" disabled style="opacity:.5;">🎓 Vous êtes en L3</button>`}
+        <button class="btn secondary" id="btnRepeatSelf" data-annee="${anneeEnCours}">🔁 Je redouble — Rester en ${student.niveau} (${nextAnnee})</button>
+      </div>
+      <p class="admin-only-note" style="margin-top:10px;">⚠️ Action irréversible.</p>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div><h2>Notifications push</h2><p>Recevez des alertes même quand l'app est fermée.</p></div></div>
+      <div id="pushStatus"></div>
+    </div>
+  `;
+}
+
+function emptyState(msg){
+  return `<div class="empty-state">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+    <p>${esc(msg)}</p>
+  </div>`;
+}
+
+const ROUTES = {
+  etudiants:{title:"Étudiants", sub:"Gestion des inscriptions par filière et niveau", render:renderStudents, adminOnly:true},
+  notes:{title:"Relevé de notes", sub:"Consultation et dépôt des relevés de notes par filière et niveau", render:renderNotes},
+  rattrapage:{title:"Rattrapage", sub:"Consultation et dépôt des relevés de rattrapage", render:renderRattrapage},
+  resultats:{title:"Résultat des semestres", sub:"Consultation et dépôt des résultats semestriels", render:renderResultats},
+  communiques:{title:"Communiqués", sub:"Annonces officielles de l'INPTIC", render:renderCommuniques},
+  emploi:{title:"Emploi du temps", sub:"Planning hebdomadaire par filière et niveau", render:renderEmploi},
+  compte:{title:"Mon compte", sub:"Informations personnelles et progression", render:renderCompte}
+};
+
+function currentRoute(){
+  const h = location.hash.replace(/^#\/?/, "");
+  let route = ROUTES[h] ? h : "emploi";
+  if(ROUTES[route].adminOnly && !isAdmin()){
+    route = "emploi";
+    location.hash = "#/emploi";
+  }
+  return route;
+}
+
+function renderRoute(){
+  const route = currentRoute();
+  const r = ROUTES[route];
+  document.getElementById("pageTitle").textContent = r.title;
+  document.getElementById("pageSub").textContent = r.sub;
+  document.getElementById("view").innerHTML = r.render();
+  document.querySelectorAll(".nav a").forEach(a => {
+    a.classList.toggle("active", a.dataset.route === route);
+    if(a.dataset.adminOnly === "true") a.style.display = isAdmin() ? "" : "none";
+  });
+  renderUserChip();
+  attachViewHandlers(route);
+  closeSidebarMobile();
+  renderPushStatus();
+  if(route === "emploi" || route === "notes" || route === "resultats" || route === "rattrapage" || route === "communiques"){
+    setTimeout(preloadRecentPdfs, 800);
+  }
+}
+
+function attachViewHandlers(route){
+  const view = document.getElementById("view");
+
+  view.onclick = async (e) => {
+    if(e.target.id === "btnPassSelf"){
+      const annee = e.target.dataset.annee;
+      const niveaux = ["L1", "L2", "L3"];
+      const student = state.students.find(s => s.id === currentUser.id);
+      if(!student){ toast("Profil introuvable"); return; }
+      const i = niveaux.indexOf(student.niveau);
+      if(i === -1 || i === niveaux.length - 1){ toast("Déjà au niveau max"); return; }
+      const nextNiveau = niveaux[i + 1];
+      const [a, b] = annee.split("-").map(Number);
+      const nextAnnee = `${a + 1}-${b + 1}`;
+      if(!confirm(`Confirmer le passage de ${student.niveau} à ${nextNiveau} (${nextAnnee}) ?`)) return;
+      e.target.disabled = true; e.target.textContent = "Enregistrement…";
+      try{
+        const r = await api.call("POST", "/me/pass", {json: {annee}});
+        toast(`✅ ${r.ancienNiveau} → ${r.nouveauNiveau} · ${r.nouvelleAnnee}`);
+        await loadRemote();
+        const me = await api.call("GET", "/me");
+        currentUser = me.user;
+        syncFiltersForStudent();
+        renderRoute();
+      }catch(err){
+        e.target.disabled = false; e.target.textContent = "✅ Je suis admis";
+        toast(err.message || "Échec");
+      }
+      return;
+    }
+
+    if(e.target.id === "btnRepeatSelf"){
+      const annee = e.target.dataset.annee;
+      const student = state.students.find(s => s.id === currentUser.id);
+      if(!student){ toast("Profil introuvable"); return; }
+      const [a, b] = annee.split("-").map(Number);
+      const nextAnnee = `${a + 1}-${b + 1}`;
+      if(!confirm(`Confirmer le redoublement en ${student.niveau} (${student.filiere}) pour l'année ${nextAnnee} ?`)) return;
+      e.target.disabled = true;
+      const originalLabel = e.target.textContent;
+      e.target.textContent = "Enregistrement…";
+      try{
+        const r = await api.call("POST", "/me/repeat", {json: {annee}});
+        toast(`🔁 Redoublement en ${r.niveau || student.niveau} · ${r.nouvelleAnnee || nextAnnee}`);
+        await loadRemote();
+        const me = await api.call("GET", "/me");
+        currentUser = me.user;
+        syncFiltersForStudent();
+        renderRoute();
+      }catch(err){
+        e.target.disabled = false; e.target.textContent = originalLabel;
+        toast(err.message || "Échec du redoublement");
+      }
+      return;
+    }
+
+    if(e.target.id === "btnEnablePush"){ await enablePushNotifications(); return; }
+    if(e.target.id === "btnDisablePush"){ await disablePushNotifications(); return; }
+
+    if(e.target.id === "btnPurgeYear"){
+      let annee = ANNEE_DEFAUT;
+      if(route === "emploi") annee = uiState.emploi.annee;
+      else if(route === "notes") annee = uiState.notes.annee;
+      else if(route === "rattrapage") annee = uiState.rattrapage.annee;
+      else if(route === "resultats") annee = uiState.resultats.annee;
+      purgeYearModal(annee);
+      return;
+    }
+
+    const btn = e.target.closest("[data-action]");
+    if(!btn) return;
+    const action = btn.dataset.action;
+
+    if(action==="unlock-year"){
+      if(!isAdmin()){ toast("Réservé à l'administrateur"); return; }
+      const annee = btn.dataset.annee;
+      if(confirm(`Déverrouiller l'année ${annee} ?`)){
+        btn.disabled = true;
+        try{
+          await api.call("DELETE", "/admin/lock-year/" + encodeURIComponent(annee));
+          await loadLockedYears();
+          renderRoute();
+          toast(`✅ Année ${annee} déverrouillée`);
+        }catch(err){
+          btn.disabled = false;
+          toast(err.message || "Échec du déverrouillage");
+        }
+      }
+      return;
+    }
+
+    if(action==="delete-student"){
+      if(confirm("Supprimer cet étudiant ? Son compte sera aussi supprimé.")){
+        try{
+          await api.call("DELETE", "/students/" + btn.dataset.id);
+          await loadRemote(); renderRoute(); toast("Étudiant supprimé");
+        }catch(err){ toast(err.message || "Suppression impossible"); }
+      }
+    } else if(action==="open-pdf"){
+      const kind = btn.dataset.kind, id = btn.dataset.id;
+      let pdf;
+      if (kind === "notes") pdf = state.notesPdfs.find(x => x.id === id);
+      else if (kind === "resultats") pdf = state.resultatPdfs.find(x => x.id === id);
+      else if (kind === "rattrapage") pdf = state.rattrapagePdfs.find(x => x.id === id);
+      else if (kind === "communiques") pdf = state.communiquesPdfs.find(x => x.id === id);
+      else pdf = state.schedulePdfs.find(x => x.id === id);
+      if (pdf) openRemotePdf(pdf);
+    } else if(action==="download-pdf"){
+      const kind = btn.dataset.kind;
+      const list = kind==="notes" ? state.notesPdfs
+                 : kind==="resultats" ? state.resultatPdfs
+                 : kind==="rattrapage" ? state.rattrapagePdfs
+                 : kind==="communiques" ? state.communiquesPdfs
+                 : state.schedulePdfs;
+      const pdf = list.find(x => x.id === btn.dataset.id);
+      if (pdf) downloadRemotePdf(pdf);
+    } else if(action==="delete-pdf"){
+      if(!isAdmin()){ toast("Réservé à l'administrateur"); return; }
+      let label;
+      if (btn.dataset.kind === "notes") label = "relevé de notes";
+      else if (btn.dataset.kind === "resultats") label = "résultat";
+      else if (btn.dataset.kind === "rattrapage") label = "relevé de rattrapage";
+      else if (btn.dataset.kind === "communiques") label = "communiqué";
+      else label = "emploi du temps";
+      if(confirm(`Supprimer ce ${label} ?`)){
+        try{
+          await api.call("DELETE", "/docs/" + btn.dataset.id);
+          await loadRemote(); renderRoute();
+          toast(label.charAt(0).toUpperCase()+label.slice(1)+" supprimé");
+        }catch(err){ toast(err.message || "Suppression impossible"); }
+      }
+    }
+  };
+
+  view.onchange = (e) => {
+    const t = e.target;
+    if(t.id==="fStudFiliere"){ uiState.students.filiere = t.value; renderRoute(); }
+    else if(t.id==="fStudNiveau"){ uiState.students.niveau = t.value; renderRoute(); }
+    else if(t.id==="fNoteFiliere"){ uiState.notes.filiere = t.value; renderRoute(); }
+    else if(t.id==="fNoteNiveau"){ uiState.notes.niveau = t.value; renderRoute(); }
+    else if(t.id==="fNoteAnnee"){ uiState.notes.annee = t.value; renderRoute(); }
+    else if(t.id==="fRatFiliere"){ uiState.rattrapage.filiere = t.value; renderRoute(); }
+    else if(t.id==="fRatNiveau"){ uiState.rattrapage.niveau = t.value; renderRoute(); }
+    else if(t.id==="fRatAnnee"){ uiState.rattrapage.annee = t.value; renderRoute(); }
+    else if(t.id==="fResFiliere"){ uiState.resultats.filiere = t.value; renderRoute(); }
+    else if(t.id==="fResNiveau"){ uiState.resultats.niveau = t.value; renderRoute(); }
+    else if(t.id==="fResAnnee"){ uiState.resultats.annee = t.value; renderRoute(); }
+    else if(t.id==="fEmpFiliere"){ uiState.emploi.filiere = t.value; renderRoute(); }
+    else if(t.id==="fEmpNiveau"){ uiState.emploi.niveau = t.value; renderRoute(); }
+    else if(t.id==="fEmpAnnee"){ uiState.emploi.annee = t.value; renderRoute(); }
+  };
+
+  view.oninput = (e) => {
+    if(e.target.id==="fStudSearch"){
+      uiState.students.q = e.target.value;
+      renderStudentsListOnly();
+    }
+  };
+
+  if(route==="emploi" && isAdmin()){
+    const btn = document.getElementById("btnAddPdf");
+    if(btn) btn.onclick = ()=> pdfUploadModal("schedule", uiState.emploi.filiere, uiState.emploi.niveau, uiState.emploi.annee);
+  }
+  if(route==="notes" && isAdmin()){
+    const btn = document.getElementById("btnAddNotePdf");
+    if(btn) btn.onclick = ()=> pdfUploadModal("notes", uiState.notes.filiere, uiState.notes.niveau, uiState.notes.annee);
+  }
+  if(route==="rattrapage" && isAdmin()){
+    const btn = document.getElementById("btnAddRattrapagePdf");
+    if(btn) btn.onclick = ()=> pdfUploadModal("rattrapage", uiState.rattrapage.filiere, uiState.rattrapage.niveau, uiState.rattrapage.annee);
+  }
+  if(route==="resultats" && isAdmin()){
+    const btn = document.getElementById("btnAddResultatPdf");
+    if(btn) btn.onclick = ()=> pdfUploadModal("resultats", uiState.resultats.filiere, uiState.resultats.niveau, uiState.resultats.annee);
+  }
+  if(route==="communiques" && isAdmin()){
+    const btn = document.getElementById("btnAddCommunique");
+    if(btn) btn.onclick = ()=> pdfUploadModal("communiques", "TOUTES", "TOUS", "TOUTES");
+    const btnPurge = document.getElementById("btnPurgeCommuniques");
+    if(btnPurge) btnPurge.onclick = ()=> purgeCommuniquesModal();
+  }
+}
+
+function renderStudentsListOnly(){
+  document.getElementById("view").innerHTML = renderStudents();
+  attachViewHandlers("etudiants");
+  const el = document.getElementById("fStudSearch");
+  el.focus();
+  el.setSelectionRange(el.value.length, el.value.length);
+}
+
+function closeSidebarMobile(){
+  document.getElementById("sidebar").classList.remove("open");
+  document.getElementById("scrim").classList.remove("show");
+}
+document.getElementById("menuToggle").addEventListener("click", ()=>{
+  document.getElementById("sidebar").classList.add("open");
+  document.getElementById("scrim").classList.add("show");
+});
+document.getElementById("scrim").addEventListener("click", closeSidebarMobile);
+
+let deferredPrompt = null;
+window.addEventListener("beforeinstallprompt", (e)=>{
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById("installBtn").hidden = false;
+});
+document.getElementById("installBtn").addEventListener("click", async ()=>{
+  if(!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  document.getElementById("installBtn").hidden = true;
+});
+window.addEventListener("appinstalled", ()=>{
+  document.getElementById("installBtn").hidden = true;
+  toast("Application installée");
+});
+
+function syncAppBadge(count){
+  if("setAppBadge" in navigator){
+    if(count > 0) navigator.setAppBadge(count).catch(()=>{});
+    else navigator.clearAppBadge().catch(()=>{});
+  }
+  if("serviceWorker" in navigator && navigator.serviceWorker.controller){
+    try{ navigator.serviceWorker.controller.postMessage({ type: "set-badge", count: count }); }catch(e){}
+  }
+  if(count === 0 && api.token){ api.call("POST", "/me/clear-badge").catch(()=>{}); }
+}
+
+const NOTIF_KEY = "inptic.notifs";
+const NOTIF_PERM_KEY = "inptic.notifPermAsked";
+const NOTIF_AUTO_CLEAR_MS = 5 * 1000;
+
+const notif = {
+  items: [], panelOpen: false, _autoClearTimer: null,
+  load(){ try{ this.items = JSON.parse(localStorage.getItem(NOTIF_KEY) || "[]"); }catch(e){ this.items = []; } },
+  save(){ try{ localStorage.setItem(NOTIF_KEY, JSON.stringify(this.items.slice(0, 50))); }catch(e){} },
+  add({ id, title, text, url, time }){
+    if(!id) id = "n-" + Date.now();
+    if(this.items.some(n => n.id === id)) return;
+    this.items.unshift({ id, title, text, url: url || "#/emploi", time: time || new Date().toISOString(), read: false });
+    this.items = this.items.slice(0, 50);
+    this.save(); this.renderBadge();
+    if(this.panelOpen) this.renderPanel();
+  },
+  markAllRead(){
+    this.items.forEach(n => n.read = true);
+    this.save(); this.renderBadge();
+    if(this.panelOpen) this.renderPanel();
+    syncAppBadge(this.unreadCount());
+  },
+  markRead(id){
+    const n = this.items.find(x => x.id === id);
+    if(n){ n.read = true; this.save(); this.renderBadge(); }
+    syncAppBadge(this.unreadCount());
+  },
+  unreadCount(){ return this.items.filter(n => !n.read).length; },
+  renderBadge(){
+    const badge = document.getElementById("notifBadge");
+    if(!badge) return;
+    const count = this.unreadCount();
+    if(count === 0) badge.classList.add("hidden");
+    else { badge.classList.remove("hidden"); badge.textContent = count > 99 ? "99+" : count; }
+    syncAppBadge(count);
+  },
+  togglePanel(){
+    const root = document.getElementById("notifPanelRoot");
+    if(!root) return;
+    if(this.panelOpen){
+      root.innerHTML = "";
+      document.body.classList.remove("modal-open");
+      this.panelOpen = false;
+      if(this._autoClearTimer){ clearTimeout(this._autoClearTimer); this._autoClearTimer = null; }
+      return;
+    }
+    this.renderPanel();
+    document.body.classList.add("modal-open");
+    this.panelOpen = true;
+    if(this._autoClearTimer) clearTimeout(this._autoClearTimer);
+    this._autoClearTimer = setTimeout(() => {
+      this.items = [];
+      this.save(); this.renderBadge(); syncAppBadge(0);
+      const r = document.getElementById("notifPanelRoot");
+      if(r) r.innerHTML = "";
+      document.body.classList.remove("modal-open");
+      this.panelOpen = false; this._autoClearTimer = null;
+      toast("Notifications effacées");
+    }, NOTIF_AUTO_CLEAR_MS);
+  },
+  renderPanel(){
+    const root = document.getElementById("notifPanelRoot");
+    if(!root) return;
+    const list = this.items.slice(0, 20);
+    const itemsHtml = list.length
+      ? list.map(n => `
+        <div class="notif-item ${n.read ? "read" : "unread"}" data-notif-id="${esc(n.id)}" data-notif-url="${esc(n.url)}">
+          <span class="notif-dot"></span>
+          <div class="notif-body">
+            <div class="notif-title">${esc(n.title)}</div>
+            <div class="notif-text">${esc(n.text)}</div>
+            <div class="notif-time">${fmtRelativeTime(n.time)}</div>
+          </div>
+        </div>`).join("")
+      : `<div class="notif-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><div>Aucune notification</div></div>`;
+    root.innerHTML = `
+      <div class="notif-panel" id="notifPanel">
+        <div class="notif-panel-head">
+          <h3>Notifications</h3>
+          <div style="display:flex;gap:8px;align-items:center;">
+            ${this.items.length ? `<button id="notifMarkAll">Tout lire</button>` : ""}
+            <button id="notifClose" class="notif-close-btn" aria-label="Fermer">✕</button>
+          </div>
+        </div>
+        <div class="notif-list">${itemsHtml}</div>
+      </div>`;
+    const markAll = root.querySelector("#notifMarkAll");
+    if(markAll) markAll.onclick = (e) => { e.stopPropagation(); this.markAllRead(); };
+    const closeBtn = root.querySelector("#notifClose");
+    if(closeBtn) closeBtn.onclick = (e) => { e.stopPropagation(); this.togglePanel(); };
+    root.querySelectorAll("[data-notif-id]").forEach(el => {
+      el.onclick = () => {
+        this.markRead(el.dataset.notifId);
+        if(el.dataset.notifUrl){
+          if(el.dataset.notifUrl.startsWith("#")) location.hash = el.dataset.notifUrl;
+          else window.open(el.dataset.notifUrl, "_blank");
+        }
+        this.togglePanel();
+      };
+    });
+  },
+  detectNewDocs(previousDocs){
+    if(!previousDocs) return;
+    const prevIds = new Set(previousDocs.map(d => d.id));
+    const fresh = state.schedulePdfs
+      .concat(state.notesPdfs, state.resultatPdfs, state.rattrapagePdfs, state.communiquesPdfs)
+      .filter(d => !prevIds.has(d.id));
+    const KIND_LABEL = { schedule: "Emploi du temps", notes: "Relevé de notes", resultats: "Résultat de semestre", rattrapage: "Relevé de rattrapage", communiques: "Nouveau communiqué" };
+    fresh.forEach(doc => {
+      const label = KIND_LABEL[doc.kind] || "Nouveau document";
+      const suffix = doc.filiere && doc.filiere !== "TOUTES" ? ` · ${doc.filiere} ${doc.niveau}` : "";
+      const url = "#/" + (doc.kind === "schedule" ? "emploi" : doc.kind);
+      this.add({ id: "doc-" + doc.id, title: label, text: doc.titre + suffix, url });
+    });
+  },
+  async requestPermission(){
+    if(!("Notification" in window)) return false;
+    if(Notification.permission === "granted") return true;
+    if(Notification.permission === "denied") return false;
+    try{ const p = await Notification.requestPermission(); return p === "granted"; }
+    catch(e){ return false; }
+  }
+};
+
+function fmtRelativeTime(iso){
+  const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+  if(diff < 60) return "à l'instant";
+  if(diff < 3600) return `il y a ${Math.floor(diff/60)} min`;
+  if(diff < 86400) return `il y a ${Math.floor(diff/3600)} h`;
+  if(diff < 604800) return `il y a ${Math.floor(diff/86400)} j`;
+  return new Date(iso).toLocaleDateString("fr-FR");
+}
+
+function saveDocsSnapshot(){
+  try{
+    const all = state.schedulePdfs.concat(state.notesPdfs, state.resultatPdfs, state.rattrapagePdfs, state.communiquesPdfs)
+      .map(d => ({ id: d.id, kind: d.kind, titre: d.titre, filiere: d.filiere, niveau: d.niveau }));
+    localStorage.setItem("inptic.docsSnapshot", JSON.stringify(all));
+  }catch(e){}
+}
+function loadDocsSnapshot(){
+  try{ return JSON.parse(localStorage.getItem("inptic.docsSnapshot") || "null"); }
+  catch(e){ return null; }
+}
+
+notif.load();
+document.getElementById("notifBtn").addEventListener("click", (e) => { e.stopPropagation(); notif.togglePanel(); });
+document.addEventListener("click", (e) => {
+  const wrap = document.getElementById("notifWrap");
+  if(notif.panelOpen && wrap && !wrap.contains(e.target)) notif.togglePanel();
+});
+document.addEventListener("keydown", (e) => { if(e.key === "Escape" && notif.panelOpen) notif.togglePanel(); });
+notif.renderBadge();
+
+function urlBase64ToUint8Array(base64String){
+  const padding = "=".repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+async function getVapidPublicKey(){
+  try{
+    const r = await fetch("/api/push/vapid-public-key", { cache: "no-store" });
+    if(!r.ok) return null;
+    const j = await r.json();
+    return j.publicKey || null;
+  }catch(e){ return null; }
+}
+
+async function subscribePushIfPossible(){
+  try{
+    if(!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+    if(Notification.permission !== "granted") return;
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if(sub){
+      await api.call("POST", "/push/subscribe", { json: { subscription: sub.toJSON() } }).catch(()=>{});
+      return;
+    }
+    const publicKey = await getVapidPublicKey();
+    if(!publicKey) return;
+    sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey)
+    });
+    await api.call("POST", "/push/subscribe", { json: { subscription: sub.toJSON() } });
+  }catch(e){ console.warn("Subscribe push failed:", e.message); }
+}
+
+async function enablePushNotifications(){
+  try{
+    if(!("Notification" in window)){ toast("Notifications non supportées"); return; }
+    if(!("serviceWorker" in navigator)){ toast("Service Worker non disponible"); return; }
+    if(!("PushManager" in window)){ toast("Push non supporté"); return; }
+    const granted = await notif.requestPermission();
+    if(!granted){ toast("Permission refusée"); renderPushStatus(); return; }
+    await subscribePushIfPossible();
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if(sub) toast("Notifications push activées ✅");
+    else toast("Abonnement échoué");
+    renderPushStatus();
+  }catch(e){ toast("Erreur : " + (e.message || e)); renderPushStatus(); }
+}
+
+async function disablePushNotifications(){
+  try{
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if(sub){
+      await api.call("POST", "/push/unsubscribe", { json: { endpoint: sub.endpoint } }).catch(()=>{});
+      await sub.unsubscribe();
+    }
+    toast("Notifications push désactivées");
+    renderPushStatus();
+  }catch(e){ toast("Erreur lors de la désactivation"); }
+}
+
+function renderPushStatus(){
+  const el = document.getElementById("pushStatus");
+  if(!el) return;
+  const supported = "Notification" in window && "PushManager" in window && "serviceWorker" in navigator;
+  const perm = supported ? Notification.permission : "unsupported";
+  if(!supported){ el.innerHTML = `<div class="notif-perm-banner">⚠️ Votre navigateur ne supporte pas les notifications push.</div>`; return; }
+  if(perm === "granted"){
+    el.innerHTML = `<div class="notif-perm-banner" style="border-color:rgba(61,220,151,.3); background:rgba(61,220,151,.08); color:var(--teal);">✅ Notifications push activées.<button id="btnDisablePush" style="background:var(--navy-800); color:var(--ink); margin-left:auto;">Désactiver</button></div>`;
+  } else if(perm === "denied"){
+    el.innerHTML = `<div class="notif-perm-banner" style="border-color:rgba(232,99,124,.3); background:rgba(232,99,124,.08); color:var(--red);">❌ Notifications bloquées.</div>`;
+  } else {
+    el.innerHTML = `<div class="notif-perm-banner">🔔 Activez les notifications.<button id="btnEnablePush" style="margin-left:auto;">Activer</button></div>`;
+  }
+}
+
+async function askNotifPermissionOnce(){
+  try{
+    if(localStorage.getItem(NOTIF_PERM_KEY)) return;
+    if(!("Notification" in window)) return;
+    if(Notification.permission === "default"){
+      await new Promise(r => setTimeout(r, 3000));
+      const granted = await notif.requestPermission();
+      localStorage.setItem(NOTIF_PERM_KEY, "1");
+      if(granted){ toast("Notifications activées ✅"); await subscribePushIfPossible(); }
+    }
+  }catch(e){}
+}
+
+if("serviceWorker" in navigator){
+  window.addEventListener("load", ()=>{
+    navigator.serviceWorker.register("./sw.js").then((reg)=>{
+      document.addEventListener("visibilitychange", ()=>{
+        if(document.visibilityState === "visible") reg.update().catch(()=>{});
+      });
+    }).catch((e) => console.warn("SW register error:", e));
+  });
+  let swRefreshing = false;
+  navigator.serviceWorker.addEventListener("controllerchange", ()=>{
+    if(swRefreshing || !navigator.serviceWorker.controller) return;
+    swRefreshing = true;
+    toast("Mise à jour installée");
+    setTimeout(()=> location.reload(), 900);
+  });
+  navigator.serviceWorker.addEventListener("message", (e)=>{
+    if(e.data && e.data.type === "push-received"){ notif.add(e.data.notif || {}); }
+  });
+}
+
+document.getElementById("btnLogoutSidebar").addEventListener("click", logout);
+window.addEventListener("hashchange", ()=>{ if(currentUser) renderRoute(); });
+
+async function refreshData(){
+  if(!currentUser) return;
+  try{ await loadRemote(); renderRoute(); }catch(e){}
+}
+
+async function clearServerBadge(){
+  if(api.token){ try{ await api.call("POST", "/me/clear-badge"); }catch(e){} }
+  if("clearAppBadge" in navigator){ try{ await navigator.clearAppBadge(); }catch(e){} }
+  if(navigator.serviceWorker && navigator.serviceWorker.controller){
+    try{ navigator.serviceWorker.controller.postMessage({ type: "clear-badge" }); }catch(e){}
+  }
+}
+
+document.addEventListener("visibilitychange", ()=>{
+  if(document.visibilityState === "visible"){ refreshData(); clearServerBadge(); }
+});
+window.addEventListener("online", refreshData);
+setInterval(()=>{
+  if(document.visibilityState !== "visible" || !currentUser) return;
+  if(document.querySelector("#modalRoot .modal")) return;
+  const tag = document.activeElement && document.activeElement.tagName;
+  if(/INPUT|SELECT|TEXTAREA/.test(tag || "")) return;
+  refreshData();
+}, 45000);
+
+loadLockedYears().finally(()=>{
+  (async () => {
+    api.load();
+    if(api.token){
+      try{ await bootAfterAuth(); showApp(); return; }catch(err){}
+    }
+    renderAuthScreen();
+  })();
+});
+
+})();
+</script>
+</body>
+</html>
