@@ -5,14 +5,9 @@
 [build.environment]
   NODE_VERSION = "20"
 
-# ⚠️ SECTION CRITIQUE POUR LE 502
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/api/:splat"
-  status = 200
-  force = true
-
-# Sécurité
+# =============================================================================
+# SÉCURITÉ
+# =============================================================================
 [[headers]]
   for = "/*"
   [headers.values]
