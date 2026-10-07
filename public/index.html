@@ -331,6 +331,65 @@
   .sidebar-scrim{display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:30;}
   .hidden{display:none !important;}
 
+  /* ============ BANNIÈRE HORS-LIGNE ============ */
+  #offlineBanner{
+    position:fixed; top:0; left:0; right:0; z-index:9000;
+    background:linear-gradient(135deg, #F2B84B, #D99A2B);
+    color:#0B1524;
+    padding:6px 12px;
+    text-align:center;
+    font-size:12px; font-weight:700;
+    padding-top:calc(8px + env(safe-area-inset-top,0px));
+    padding-bottom:8px;
+    transform:translateY(-100%);
+    transition:transform .35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow:0 2px 12px rgba(0,0,0,.3);
+    letter-spacing:.02em;
+  }
+  #offlineBanner.show{ transform:translateY(0); }
+  #offlineBanner .dot{
+    display:inline-block; width:8px; height:8px; border-radius:50%;
+    background:#0B1524; margin-right:6px; vertical-align:middle;
+    animation: offlinePulse 1.4s infinite;
+  }
+  @keyframes offlinePulse{
+    0%,100% { opacity:1; }
+    50% { opacity:.4; }
+  }
+
+  /* ============ ÉCRAN DE DÉMARRAGE (SPLASH) ============ */
+  #bootScreen{
+    position:fixed; inset:0; z-index:9999;
+    background:var(--navy-950);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:20px;
+    transition:opacity .3s ease;
+  }
+  #bootScreen.hide{ opacity:0; pointer-events:none; }
+  #bootScreen img{
+    width:70px; height:70px; object-fit:contain; border-radius:14px;
+    background:#fff; padding:4px; box-shadow:var(--shadow-lg);
+    animation: bootFadeIn .5s ease-out;
+  }
+  #bootScreen .boot-name{
+    font-family:var(--font-display); font-size:20px; font-weight:600;
+    color:var(--ink); letter-spacing:-.01em;
+  }
+  #bootScreen .boot-sub{
+    font-size:12px; color:var(--ink-faint); margin-top:-14px;
+  }
+  #bootScreen .boot-spinner{
+    width:26px; height:26px; margin-top:10px;
+    border:2.5px solid rgba(255,255,255,.1);
+    border-top-color:var(--blue); border-radius:50%;
+    animation: bootSpin .8s linear infinite;
+  }
+  @keyframes bootSpin{ to { transform:rotate(360deg); } }
+  @keyframes bootFadeIn{
+    from { opacity:0; transform:translateY(10px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
   #authScreen{
     min-height:100vh; min-height:100dvh;
     display:flex; align-items:center; justify-content:center;
@@ -619,6 +678,20 @@
 </head>
 <body>
 
+<!-- Bannière hors-ligne -->
+<div id="offlineBanner">
+  <span class="dot"></span>
+  Mode hors-ligne — Dernières données connues
+</div>
+
+<!-- Écran de démarrage -->
+<div id="bootScreen">
+  <img src="/inptic.jpg" alt="INPTIC">
+  <div class="boot-name">INPTIC</div>
+  <div class="boot-sub">Gestion universitaire</div>
+  <div class="boot-spinner"></div>
+</div>
+
 <div id="authScreen" class="hidden"></div>
 
 <div id="app" class="hidden">
@@ -702,6 +775,82 @@
 (function(){
 "use strict";
 
+/* =========================================================================
+   INDEXEDDB — Cache local persistant (comme WhatsApp)
+   ========================================================================= */
+const DB_NAME = "inptic-offline";
+const DB_VERSION = 1;
+const DB_STORE = "cache";
+
+function openDB(){
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if(!db.objectStoreNames.contains(DB_STORE)){
+        db.createObjectStore(DB_STORE, { keyPath: "key" });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbSet(key, value){
+  try{
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(DB_STORE, "readwrite");
+      tx.objectStore(DB_STORE).put({ key, value, updatedAt: Date.now() });
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => reject(tx.error);
+    });
+  }catch(e){ console.warn("dbSet error:", e); return false; }
+}
+
+async function dbGet(key){
+  try{
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(DB_STORE, "readonly");
+      const req = tx.objectStore(DB_STORE).get(key);
+      req.onsuccess = () => resolve(req.result ? req.result.value : null);
+      req.onerror = () => reject(req.error);
+    });
+  }catch(e){ console.warn("dbGet error:", e); return null; }
+}
+
+async function dbClear(){
+  try{
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(DB_STORE, "readwrite");
+      tx.objectStore(DB_STORE).clear();
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => reject(tx.error);
+    });
+  }catch(e){ return false; }
+}
+
+/* =========================================================================
+   BANNIÈRE HORS-LIGNE
+   ========================================================================= */
+function showOfflineBanner(){
+  const b = document.getElementById("offlineBanner");
+  if(b) b.classList.add("show");
+}
+function hideOfflineBanner(){
+  const b = document.getElementById("offlineBanner");
+  if(b) b.classList.remove("show");
+}
+function updateOfflineState(){
+  if(navigator.onLine) hideOfflineBanner();
+  else showOfflineBanner();
+}
+
+/* =========================================================================
+   API + ÉTAT
+   ========================================================================= */
 const TOKEN_KEY = "inptic.token";
 const MAX_PDF_BYTES = 5 * 1024 * 1024;
 
@@ -727,7 +876,11 @@ const api = {
     let r;
     try{
       r = await fetch("/api" + path, {method, headers, body, cache: "no-store"});
-    }catch(e){ throw new Error("Connexion impossible. Vérifiez votre accès Internet."); }
+    }catch(e){
+      const err = new Error("Connexion impossible. Vérifiez votre accès Internet.");
+      err.offline = true;
+      throw err;
+    }
     if(!r.ok){
       const j = await r.json().catch(()=>({}));
       const err = new Error(j.error || ("Erreur " + r.status));
@@ -776,6 +929,21 @@ function seedState(){
 let state = seedState();
 let lockedYears = [];
 
+/* =========================================================================
+   APPLICATION DES DONNÉES
+   ========================================================================= */
+function applyData(d){
+  if(!d) return;
+  state.students = d.students || [];
+  const docs = d.docs || [];
+  const byKind = k => docs.filter(x => x.kind === k);
+  state.schedulePdfs    = byKind("schedule");
+  state.notesPdfs       = byKind("notes");
+  state.resultatPdfs    = byKind("resultats");
+  state.rattrapagePdfs  = byKind("rattrapage");
+  state.communiquesPdfs = byKind("communiques");
+}
+
 async function loadLockedYears(){
   try{
     const r = await fetch("/api/locked-years", { cache: "no-store" });
@@ -785,18 +953,30 @@ async function loadLockedYears(){
   }catch(e){ lockedYears = []; }
 }
 
-async function loadRemote(){
-  const d = await api.call("GET", "/data");
-  state.students = d.students;
-  const byKind = k => d.docs.filter(x => x.kind === k);
-  state.schedulePdfs    = byKind("schedule");
-  state.notesPdfs       = byKind("notes");
-  state.resultatPdfs    = byKind("resultats");
-  state.rattrapagePdfs  = byKind("rattrapage");
-  state.communiquesPdfs = byKind("communiques");
+/* =========================================================================
+   CHARGEMENT RÉSEAU + CACHE
+   ========================================================================= */
+
+async function fetchAndCache(){
+  // Récupère tout depuis le serveur puis met à jour IndexedDB
+  const j = await api.call("GET", "/me");
+  currentUser = j.user;
+  await dbSet("user", j.user);
+
+  const data = await api.call("GET", "/data");
+  applyData(data);
+  await dbSet("data", data);
+
+  await loadLockedYears();
+  await dbSet("lockedYears", lockedYears);
+
   const snapshot = loadDocsSnapshot();
   if(snapshot && currentUser){ notif.detectNewDocs(snapshot); }
   saveDocsSnapshot();
+}
+
+async function loadRemote(){
+  await fetchAndCache();
 }
 
 async function bootAfterAuth(){
@@ -806,6 +986,44 @@ async function bootAfterAuth(){
   syncFiltersForStudent();
 }
 
+/* =========================================================================
+   SYNCHRO ARRIÈRE-PLAN
+   ========================================================================= */
+let _syncing = false;
+async function syncInBackground(){
+  if(_syncing) return;
+  if(!navigator.onLine){ updateOfflineState(); return; }
+  _syncing = true;
+  try{
+    await fetchAndCache();
+    hideOfflineBanner();
+    if(currentUser) renderRoute();
+  }catch(err){
+    if(err && err.expired){
+      // Token expiré ET on est en ligne → il faut vraiment se reconnecter
+      hideOfflineBanner();
+      handleSessionExpired();
+    }else{
+      // Erreur réseau → on garde les données locales
+      updateOfflineState();
+    }
+  }finally{
+    _syncing = false;
+  }
+}
+
+function handleSessionExpired(){
+  toast("Session expirée. Reconnectez-vous.");
+  api.setToken(null);
+  currentUser = null;
+  state = seedState();
+  dbClear();
+  renderAuthScreen();
+}
+
+/* =========================================================================
+   AUTH
+   ========================================================================= */
 let currentUser = null;
 let authMode = "login";
 let authSuccessMsg = "";
@@ -891,7 +1109,11 @@ function renderAuthScreen(){
         showApp();
       }catch(err){
         btn.disabled = false; btn.textContent = "Se connecter";
-        setAuthError(err.message || "Connexion impossible.");
+        if(err && err.offline){
+          setAuthError("Pas de connexion Internet. Connectez-vous une première fois pour activer le mode hors-ligne.");
+        }else{
+          setAuthError(err.message || "Connexion impossible.");
+        }
       }
     };
     document.getElementById("btnLogin").onclick = doLogin;
@@ -978,12 +1200,22 @@ function syncFiltersForStudent(){
 function showApp(){
   document.getElementById("authScreen").classList.add("hidden");
   document.getElementById("app").classList.remove("hidden");
+  hideBootScreen();
   renderUserChip();
   syncFiltersForStudent();
   if(!location.hash) location.hash = "#/emploi";
   renderRoute();
+  updateOfflineState();
   askNotifPermissionOnce();
   subscribePushIfPossible();
+}
+
+function hideBootScreen(){
+  const b = document.getElementById("bootScreen");
+  if(b){
+    b.classList.add("hide");
+    setTimeout(() => b.remove(), 400);
+  }
 }
 
 async function logout(){
@@ -993,15 +1225,16 @@ async function logout(){
   authMode = "login";
   authSuccessMsg = "";
 
-  /* ✅ Vide le cache PDF local pour empêcher un autre utilisateur d'y accéder */
-  try {
+  // Vider tous les caches (données + PDF)
+  try{
+    await dbClear();
     if(navigator.serviceWorker && navigator.serviceWorker.controller){
       navigator.serviceWorker.controller.postMessage({ type: "clear-pdf-cache" });
     }
     if("caches" in window){
       await caches.delete("campus-pdf-v1");
     }
-  } catch(e){ console.warn("Erreur nettoyage cache PDF:", e); }
+  }catch(e){}
 
   location.hash = "";
   renderAuthScreen();
@@ -1041,10 +1274,8 @@ function downloadRemotePdf(pdf){
   toast("Téléchargement…");
 }
 
-/* ================= PDF.js — Chargement robuste + cache SW ================= */
-
+/* ================= PDF.js ================= */
 async function loadPdfJsLib(){
-  // Si le worker a été tué par iOS, on force le rechargement
   if(window.pdfjsLib && window.pdfjsLib.GlobalWorkerOptions && !window.pdfjsLib.GlobalWorkerOptions.workerSrc){
     delete window.pdfjsLib;
   }
@@ -1071,7 +1302,6 @@ async function openRemotePdf(pdf){
   const url = "/api/docs/" + encodeURIComponent(pdf.id) + "/file?token=" + encodeURIComponent(api.token);
   const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
-  /* ============ VISIONNEUSE PDF.js (mobile / PWA iOS) ============ */
   if(isMobile){
     try { history.pushState({ pdfViewer: true }, ""); } catch(e){}
 
@@ -1100,7 +1330,6 @@ async function openRemotePdf(pdf){
       if(closed) return;
       closed = true;
       try { if(renderingTask && renderingTask.cancel) renderingTask.cancel(); } catch(e){}
-      // ✅ Détruit PDF.js pour libérer la mémoire (évite les bugs après plusieurs ouvertures)
       try { if(pdfDoc) pdfDoc.destroy(); } catch(e){}
       const el = document.getElementById("pdfMobileViewer");
       if(el) el.remove();
@@ -1128,7 +1357,6 @@ async function openRemotePdf(pdf){
       const container = document.getElementById("pdfCanvasContainer");
       try {
         const pdfjsLib = await loadPdfJsLib();
-        // ✅ disableRange/Stream/AutoFetch → mise en cache SW simple et rapide
         const loadingTask = pdfjsLib.getDocument({
           url,
           withCredentials: false,
@@ -1182,7 +1410,6 @@ async function openRemotePdf(pdf){
     return;
   }
 
-  /* ============ DESKTOP ============ */
   const overlay = document.createElement("div");
   overlay.id = "pdfLoaderOverlay";
   overlay.style.cssText = `
@@ -1213,10 +1440,8 @@ async function openRemotePdf(pdf){
   else { setTimeout(cleanup, 800); }
 }
 
-/* ✅ Préchargement + nettoyage des anciens prefetch */
 function preloadRecentPdfs(){
   if(!api.token) return;
-  // Nettoie les anciens prefetch marqués
   document.querySelectorAll('link[rel="prefetch"][data-inptic-pdf]').forEach(l => l.remove());
   const all = state.schedulePdfs
     .concat(state.notesPdfs, state.resultatPdfs, state.rattrapagePdfs, state.communiquesPdfs)
@@ -1235,7 +1460,6 @@ function preloadRecentPdfs(){
   });
 }
 
-/* ✅ Ajoute un badge 📥 aux PDF déjà en cache hors-ligne */
 async function markCachedPdfs(){
   if(!("caches" in window) || !api.token) return;
   try {
@@ -1429,6 +1653,7 @@ function purgeYearModal(annee) {
         closeModal();
         await loadRemote();
         await loadLockedYears();
+        await dbSet("lockedYears", lockedYears);
         renderRoute();
         toast(`✅ Données de ${annee} supprimées. Année verrouillée.`);
       } catch(err) {
@@ -1827,6 +2052,7 @@ function attachViewHandlers(route){
         await loadRemote();
         const me = await api.call("GET", "/me");
         currentUser = me.user;
+        await dbSet("user", currentUser);
         syncFiltersForStudent();
         renderRoute();
       }catch(err){
@@ -1852,6 +2078,7 @@ function attachViewHandlers(route){
         await loadRemote();
         const me = await api.call("GET", "/me");
         currentUser = me.user;
+        await dbSet("user", currentUser);
         syncFiltersForStudent();
         renderRoute();
       }catch(err){
@@ -1886,6 +2113,7 @@ function attachViewHandlers(route){
         try{
           await api.call("DELETE", "/admin/lock-year/" + encodeURIComponent(annee));
           await loadLockedYears();
+          await dbSet("lockedYears", lockedYears);
           renderRoute();
           toast(`✅ Année ${annee} déverrouillée`);
         }catch(err){
@@ -2309,6 +2537,7 @@ window.addEventListener("hashchange", ()=>{ if(currentUser) renderRoute(); });
 
 async function refreshData(){
   if(!currentUser) return;
+  if(!navigator.onLine) return;
   try{ await loadRemote(); renderRoute(); }catch(e){}
 }
 
@@ -2320,24 +2549,74 @@ async function clearServerBadge(){
   }
 }
 
-/* ✅ Rafraîchissement uniquement au retour de visibilité (plus de polling 45s) */
-document.addEventListener("visibilitychange", ()=>{
+/* =========================================================================
+   ÉVÉNEMENTS RÉSEAU — Bascule automatique online/offline
+   ========================================================================= */
+window.addEventListener("online", () => {
+  hideOfflineBanner();
+  if(currentUser) syncInBackground();
+});
+window.addEventListener("offline", () => {
+  showOfflineBanner();
+});
+
+document.addEventListener("visibilitychange", () => {
   if(document.visibilityState === "visible" && currentUser){
-    refreshData();
     clearServerBadge();
+    // Synchronise en arrière-plan si on est revenu et qu'on a du réseau
+    if(navigator.onLine) syncInBackground();
+    else updateOfflineState();
   }
 });
-window.addEventListener("online", refreshData);
 
-loadLockedYears().finally(()=>{
-  (async () => {
-    api.load();
-    if(api.token){
-      try{ await bootAfterAuth(); showApp(); return; }catch(err){}
-    }
+/* =========================================================================
+   DÉMARRAGE — OFFLINE-FIRST (comme WhatsApp)
+   ========================================================================= */
+(async function boot(){
+  api.load();
+
+  // Sans token → écran de connexion
+  if(!api.token){
+    hideBootScreen();
     renderAuthScreen();
-  })();
-});
+    return;
+  }
+
+  // Étape 1 : Charge le cache local IMMÉDIATEMENT (affichage instantané)
+  let hasCache = false;
+  try{
+    const [cachedUser, cachedData, cachedYears] = await Promise.all([
+      dbGet("user"),
+      dbGet("data"),
+      dbGet("lockedYears")
+    ]);
+
+    if(cachedUser && cachedData){
+      currentUser = cachedUser;
+      applyData(cachedData);
+      lockedYears = Array.isArray(cachedYears) ? cachedYears : [];
+      hasCache = true;
+      showApp();  // ✅ Affichage instantané depuis le cache
+      console.log("[INPTIC] Affichage depuis le cache local");
+    }
+  }catch(e){ console.warn("Cache read error:", e); }
+
+  // Étape 2 : Synchronise avec le serveur en arrière-plan
+  if(navigator.onLine){
+    syncInBackground();
+  }else{
+    showOfflineBanner();
+    if(!hasCache){
+      // Pas de cache ET pas de réseau → impossible de continuer
+      hideBootScreen();
+      renderAuthScreen();
+      setAuthError("Pas de connexion. Connectez-vous une première fois avec Internet.");
+    }
+  }
+})();
+
+// Sécurité : masque le splash après 4 secondes maxi
+setTimeout(hideBootScreen, 4000);
 
 })();
 </script>
