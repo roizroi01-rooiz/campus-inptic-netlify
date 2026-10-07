@@ -1,9 +1,11 @@
 /* =============================================================================
    SERVICE WORKER — INPTIC Campus
+   Version v14 : cache PDF hors-ligne + nettoyage
    ============================================================================= */
-const VERSION = "campus-inptic-v13";
+const VERSION = "campus-inptic-v14";
 const STATIC_CACHE = VERSION + "-static";
 const FONT_CACHE = VERSION + "-fonts";
+const PDF_CACHE = "campus-pdf-v1";
 const BADGE_CACHE = "badge-counter";
 
 const ASSETS = [
@@ -23,7 +25,7 @@ self.addEventListener("activate", (event) => {
     caches.keys()
       .then((keys) =>
         Promise.all(
-          keys.filter((k) => k !== STATIC_CACHE && k !== FONT_CACHE && k !== BADGE_CACHE)
+          keys.filter((k) => k !== STATIC_CACHE && k !== FONT_CACHE && k !== BADGE_CACHE && k !== PDF_CACHE)
               .map((k) => caches.delete(k))
         )
       )
@@ -88,10 +90,34 @@ self.addEventListener("fetch", (event) => {
   /* 2. Autres origines : ne pas intercepter */
   if (url.origin !== self.location.origin) return;
 
-  /* 3. ⚠️ API : NE JAMAIS METTRE EN CACHE (critique pour les PDF) */
+  /* 3. ⭐ PDF : cache-first par ID de document */
+  if (url.pathname.startsWith("/api/docs/") && url.pathname.endsWith("/file")) {
+    const match = url.pathname.match(/^\/api\/docs\/([^/]+)\/file$/);
+    if (match) {
+      const docId = match[1];
+      const cacheKey = "/pdf-cache/" + docId;
+      event.respondWith((async () => {
+        const cache = await caches.open(PDF_CACHE);
+        const cached = await cache.match(cacheKey);
+        if (cached) return cached;
+        try {
+          const res = await fetch(req);
+          if (res && res.status === 200) {
+            try { cache.put(cacheKey, res.clone()); } catch(e){}
+          }
+          return res;
+        } catch (e) {
+          return new Response("Document non disponible hors ligne.", { status: 503, headers: {"Content-Type":"text/plain"} });
+        }
+      })());
+      return;
+    }
+  }
+
+  /* 4. Autres routes API : JAMAIS de cache */
   if (url.pathname.startsWith("/api/")) return;
 
-  /* 4. Navigation : network-first avec fallback index.html */
+  /* 5. Navigation : network-first avec fallback index.html */
   if (req.mode === "navigate") {
     event.respondWith(
       fetch(req)
@@ -107,7 +133,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  /* 5. Assets statiques : cache-first + maj arrière-plan */
+  /* 6. Assets statiques : cache-first + maj arrière-plan */
   event.respondWith(
     caches.match(req).then((cached) => {
       const network = fetch(req)
@@ -188,4 +214,18 @@ self.addEventListener("message", (event) => {
     event.waitUntil((async () => { await setBadgeCount(n); await applyAppBadge(n); })());
   }
   if (data.type === "skip-waiting") { self.skipWaiting(); }
+
+  /* ✅ Vider tout le cache PDF (au logout) */
+  if (data.type === "clear-pdf-cache") {
+    event.waitUntil(caches.delete(PDF_CACHE));
+  }
+
+  /* ✅ Vérifier si un PDF est en cache */
+  if (data.type === "check-pdf-cached" && data.docId && event.ports && event.ports[0]) {
+    event.waitUntil((async () => {
+      const cache = await caches.open(PDF_CACHE);
+      const hit = await cache.match("/pdf-cache/" + data.docId);
+      event.ports[0].postMessage({ cached: !!hit });
+    })());
+  }
 });

@@ -459,7 +459,7 @@
   .notif-close-btn:hover{ color:var(--ink); border-color:var(--blue); background: var(--navy-700); }
   @media (min-width:521px){ .notif-close-btn{display:none;} }
 
-  /* ============ VISIONNEUSE PDF.js (PWA / MOBILE) ============ */
+  /* ============ VISIONNEUSE PDF.js ============ */
   #pdfMobileViewer{
     position:fixed; inset:0; z-index:10000;
     background:#0F1B2D;
@@ -992,6 +992,17 @@ async function logout(){
   state = seedState();
   authMode = "login";
   authSuccessMsg = "";
+
+  /* ✅ Vide le cache PDF local pour empêcher un autre utilisateur d'y accéder */
+  try {
+    if(navigator.serviceWorker && navigator.serviceWorker.controller){
+      navigator.serviceWorker.controller.postMessage({ type: "clear-pdf-cache" });
+    }
+    if("caches" in window){
+      await caches.delete("campus-pdf-v1");
+    }
+  } catch(e){ console.warn("Erreur nettoyage cache PDF:", e); }
+
   location.hash = "";
   renderAuthScreen();
 }
@@ -1030,9 +1041,13 @@ function downloadRemotePdf(pdf){
   toast("Téléchargement…");
 }
 
-/* ================= PDF.js — Chargement + rendu canvas (iOS compatible) ================= */
+/* ================= PDF.js — Chargement robuste + cache SW ================= */
 
 async function loadPdfJsLib(){
+  // Si le worker a été tué par iOS, on force le rechargement
+  if(window.pdfjsLib && window.pdfjsLib.GlobalWorkerOptions && !window.pdfjsLib.GlobalWorkerOptions.workerSrc){
+    delete window.pdfjsLib;
+  }
   if(window.pdfjsLib) return window.pdfjsLib;
   return new Promise((resolve, reject) => {
     const script = document.createElement("script");
@@ -1079,11 +1094,14 @@ async function openRemotePdf(pdf){
 
     let closed = false;
     let renderingTask = null;
+    let pdfDoc = null;
 
     const closeViewer = (fromPopstate) => {
       if(closed) return;
       closed = true;
       try { if(renderingTask && renderingTask.cancel) renderingTask.cancel(); } catch(e){}
+      // ✅ Détruit PDF.js pour libérer la mémoire (évite les bugs après plusieurs ouvertures)
+      try { if(pdfDoc) pdfDoc.destroy(); } catch(e){}
       const el = document.getElementById("pdfMobileViewer");
       if(el) el.remove();
       document.body.classList.remove("modal-open");
@@ -1110,8 +1128,15 @@ async function openRemotePdf(pdf){
       const container = document.getElementById("pdfCanvasContainer");
       try {
         const pdfjsLib = await loadPdfJsLib();
-        const loadingTask = pdfjsLib.getDocument({ url, withCredentials: false });
-        const pdfDoc = await loadingTask.promise;
+        // ✅ disableRange/Stream/AutoFetch → mise en cache SW simple et rapide
+        const loadingTask = pdfjsLib.getDocument({
+          url,
+          withCredentials: false,
+          disableRange: true,
+          disableStream: true,
+          disableAutoFetch: true
+        });
+        pdfDoc = await loadingTask.promise;
 
         container.innerHTML = "";
         const totalPages = pdfDoc.numPages;
@@ -1157,7 +1182,7 @@ async function openRemotePdf(pdf){
     return;
   }
 
-  /* ============ DESKTOP : comportement inchangé ============ */
+  /* ============ DESKTOP ============ */
   const overlay = document.createElement("div");
   overlay.id = "pdfLoaderOverlay";
   overlay.style.cssText = `
@@ -1188,8 +1213,11 @@ async function openRemotePdf(pdf){
   else { setTimeout(cleanup, 800); }
 }
 
+/* ✅ Préchargement + nettoyage des anciens prefetch */
 function preloadRecentPdfs(){
   if(!api.token) return;
+  // Nettoie les anciens prefetch marqués
+  document.querySelectorAll('link[rel="prefetch"][data-inptic-pdf]').forEach(l => l.remove());
   const all = state.schedulePdfs
     .concat(state.notesPdfs, state.resultatPdfs, state.rattrapagePdfs, state.communiquesPdfs)
     .sort((a,b) => b.dateAjout.localeCompare(a.dateAjout))
@@ -1202,8 +1230,33 @@ function preloadRecentPdfs(){
     link.href = url;
     link.as = "document";
     link.crossOrigin = "anonymous";
+    link.dataset.inpticPdf = "1";
     document.head.appendChild(link);
   });
+}
+
+/* ✅ Ajoute un badge 📥 aux PDF déjà en cache hors-ligne */
+async function markCachedPdfs(){
+  if(!("caches" in window) || !api.token) return;
+  try {
+    const cache = await caches.open("campus-pdf-v1");
+    const all = state.schedulePdfs
+      .concat(state.notesPdfs, state.resultatPdfs, state.rattrapagePdfs, state.communiquesPdfs);
+    for(const pdf of all){
+      const hit = await cache.match("/pdf-cache/" + pdf.id);
+      if(hit){
+        const btn = document.querySelector(`[data-action="open-pdf"][data-id="${pdf.id}"]`);
+        if(btn && !btn.querySelector(".pdf-offline-badge")){
+          const badge = document.createElement("span");
+          badge.className = "pdf-offline-badge";
+          badge.textContent = "📥";
+          badge.title = "Disponible hors ligne";
+          badge.style.cssText = "margin-left:4px;font-size:11px;opacity:.75;";
+          btn.appendChild(badge);
+        }
+      }
+    }
+  } catch(e){}
 }
 
 function openModal(html, onMount){
@@ -1748,6 +1801,7 @@ function renderRoute(){
   renderPushStatus();
   if(route === "emploi" || route === "notes" || route === "resultats" || route === "rattrapage" || route === "communiques"){
     setTimeout(preloadRecentPdfs, 800);
+    setTimeout(markCachedPdfs, 1200);
   }
 }
 
@@ -2266,17 +2320,14 @@ async function clearServerBadge(){
   }
 }
 
+/* ✅ Rafraîchissement uniquement au retour de visibilité (plus de polling 45s) */
 document.addEventListener("visibilitychange", ()=>{
-  if(document.visibilityState === "visible"){ refreshData(); clearServerBadge(); }
+  if(document.visibilityState === "visible" && currentUser){
+    refreshData();
+    clearServerBadge();
+  }
 });
 window.addEventListener("online", refreshData);
-setInterval(()=>{
-  if(document.visibilityState !== "visible" || !currentUser) return;
-  if(document.querySelector("#modalRoot .modal")) return;
-  const tag = document.activeElement && document.activeElement.tagName;
-  if(/INPUT|SELECT|TEXTAREA/.test(tag || "")) return;
-  refreshData();
-}, 45000);
 
 loadLockedYears().finally(()=>{
   (async () => {
