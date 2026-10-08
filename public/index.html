@@ -331,7 +331,7 @@
   .sidebar-scrim{display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:30;}
   .hidden{display:none !important;}
 
-  /* ============ BANNIÈRE HORS-LIGNE ============ */
+  /* BANNIÈRE HORS-LIGNE */
   #offlineBanner{
     position:fixed; top:0; left:0; right:0; z-index:9000;
     background:linear-gradient(135deg, #F2B84B, #D99A2B);
@@ -357,7 +357,7 @@
     50% { opacity:.4; }
   }
 
-  /* ============ ÉCRAN DE DÉMARRAGE (SPLASH) ============ */
+  /* ÉCRAN DE DÉMARRAGE */
   #bootScreen{
     position:fixed; inset:0; z-index:9999;
     background:var(--navy-950);
@@ -518,7 +518,7 @@
   .notif-close-btn:hover{ color:var(--ink); border-color:var(--blue); background: var(--navy-700); }
   @media (min-width:521px){ .notif-close-btn{display:none;} }
 
-  /* ============ VISIONNEUSE PDF.js ============ */
+  /* VISIONNEUSE PDF.js */
   #pdfMobileViewer{
     position:fixed; inset:0; z-index:10000;
     background:#0F1B2D;
@@ -678,13 +678,11 @@
 </head>
 <body>
 
-<!-- Bannière hors-ligne -->
 <div id="offlineBanner">
   <span class="dot"></span>
   Mode hors-ligne — Dernières données connues
 </div>
 
-<!-- Écran de démarrage -->
 <div id="bootScreen">
   <img src="/inptic.jpg" alt="INPTIC">
   <div class="boot-name">INPTIC</div>
@@ -776,7 +774,7 @@
 "use strict";
 
 /* =========================================================================
-   INDEXEDDB — Cache local persistant (comme WhatsApp)
+   INDEXEDDB — Cache local persistant
    ========================================================================= */
 const DB_NAME = "inptic-offline";
 const DB_VERSION = 1;
@@ -846,6 +844,23 @@ function hideOfflineBanner(){
 function updateOfflineState(){
   if(navigator.onLine) hideOfflineBanner();
   else showOfflineBanner();
+}
+
+/* =========================================================================
+   HELPERS LOCALSTORAGE (backup du cache)
+   ========================================================================= */
+const LS_USER  = "inptic.cached-user";
+const LS_DATA  = "inptic.cached-data";
+const LS_YEARS = "inptic.cached-years";
+
+function lsSet(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){} }
+function lsGet(key){ try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; }catch(e){ return null; } }
+function lsClear(){
+  try{
+    localStorage.removeItem(LS_USER);
+    localStorage.removeItem(LS_DATA);
+    localStorage.removeItem(LS_YEARS);
+  }catch(e){}
 }
 
 /* =========================================================================
@@ -929,9 +944,6 @@ function seedState(){
 let state = seedState();
 let lockedYears = [];
 
-/* =========================================================================
-   APPLICATION DES DONNÉES
-   ========================================================================= */
 function applyData(d){
   if(!d) return;
   state.students = d.students || [];
@@ -956,19 +968,20 @@ async function loadLockedYears(){
 /* =========================================================================
    CHARGEMENT RÉSEAU + CACHE
    ========================================================================= */
-
 async function fetchAndCache(){
-  // Récupère tout depuis le serveur puis met à jour IndexedDB
   const j = await api.call("GET", "/me");
   currentUser = j.user;
   await dbSet("user", j.user);
+  lsSet(LS_USER, j.user);
 
   const data = await api.call("GET", "/data");
   applyData(data);
   await dbSet("data", data);
+  lsSet(LS_DATA, data);
 
   await loadLockedYears();
   await dbSet("lockedYears", lockedYears);
+  lsSet(LS_YEARS, lockedYears);
 
   const snapshot = loadDocsSnapshot();
   if(snapshot && currentUser){ notif.detectNewDocs(snapshot); }
@@ -982,6 +995,7 @@ async function loadRemote(){
 async function bootAfterAuth(){
   const j = await api.call("GET", "/me");
   currentUser = j.user;
+  lsSet(LS_USER, j.user);
   await Promise.all([ loadRemote(), loadLockedYears() ]);
   syncFiltersForStudent();
 }
@@ -1000,11 +1014,9 @@ async function syncInBackground(){
     if(currentUser) renderRoute();
   }catch(err){
     if(err && err.expired){
-      // Token expiré ET on est en ligne → il faut vraiment se reconnecter
       hideOfflineBanner();
       handleSessionExpired();
     }else{
-      // Erreur réseau → on garde les données locales
       updateOfflineState();
     }
   }finally{
@@ -1018,6 +1030,7 @@ function handleSessionExpired(){
   currentUser = null;
   state = seedState();
   dbClear();
+  lsClear();
   renderAuthScreen();
 }
 
@@ -1083,7 +1096,8 @@ function signupHtml(){
 }
 
 function setAuthError(msg){
-  document.getElementById("authError").innerHTML = msg ? `<div class="auth-error">${esc(msg)}</div>` : "";
+  const el = document.getElementById("authError");
+  if(el) el.innerHTML = msg ? `<div class="auth-error">${esc(msg)}</div>` : "";
 }
 
 function renderAuthScreen(){
@@ -1214,7 +1228,7 @@ function hideBootScreen(){
   const b = document.getElementById("bootScreen");
   if(b){
     b.classList.add("hide");
-    setTimeout(() => b.remove(), 400);
+    setTimeout(() => { try{ b.remove(); }catch(e){} }, 400);
   }
 }
 
@@ -1225,9 +1239,9 @@ async function logout(){
   authMode = "login";
   authSuccessMsg = "";
 
-  // Vider tous les caches (données + PDF)
   try{
     await dbClear();
+    lsClear();
     if(navigator.serviceWorker && navigator.serviceWorker.controller){
       navigator.serviceWorker.controller.postMessage({ type: "clear-pdf-cache" });
     }
@@ -1654,6 +1668,7 @@ function purgeYearModal(annee) {
         await loadRemote();
         await loadLockedYears();
         await dbSet("lockedYears", lockedYears);
+        lsSet(LS_YEARS, lockedYears);
         renderRoute();
         toast(`✅ Données de ${annee} supprimées. Année verrouillée.`);
       } catch(err) {
@@ -2052,7 +2067,7 @@ function attachViewHandlers(route){
         await loadRemote();
         const me = await api.call("GET", "/me");
         currentUser = me.user;
-        await dbSet("user", currentUser);
+        lsSet(LS_USER, currentUser);
         syncFiltersForStudent();
         renderRoute();
       }catch(err){
@@ -2078,7 +2093,7 @@ function attachViewHandlers(route){
         await loadRemote();
         const me = await api.call("GET", "/me");
         currentUser = me.user;
-        await dbSet("user", currentUser);
+        lsSet(LS_USER, currentUser);
         syncFiltersForStudent();
         renderRoute();
       }catch(err){
@@ -2114,6 +2129,7 @@ function attachViewHandlers(route){
           await api.call("DELETE", "/admin/lock-year/" + encodeURIComponent(annee));
           await loadLockedYears();
           await dbSet("lockedYears", lockedYears);
+          lsSet(LS_YEARS, lockedYears);
           renderRoute();
           toast(`✅ Année ${annee} déverrouillée`);
         }catch(err){
@@ -2550,7 +2566,7 @@ async function clearServerBadge(){
 }
 
 /* =========================================================================
-   ÉVÉNEMENTS RÉSEAU — Bascule automatique online/offline
+   ÉVÉNEMENTS RÉSEAU
    ========================================================================= */
 window.addEventListener("online", () => {
   hideOfflineBanner();
@@ -2563,59 +2579,82 @@ window.addEventListener("offline", () => {
 document.addEventListener("visibilitychange", () => {
   if(document.visibilityState === "visible" && currentUser){
     clearServerBadge();
-    // Synchronise en arrière-plan si on est revenu et qu'on a du réseau
     if(navigator.onLine) syncInBackground();
     else updateOfflineState();
   }
 });
 
 /* =========================================================================
-   DÉMARRAGE — OFFLINE-FIRST (comme WhatsApp)
+   DÉMARRAGE — OFFLINE-FIRST AVEC DOUBLE CACHE (IndexedDB + localStorage)
    ========================================================================= */
 (async function boot(){
   api.load();
 
-  // Sans token → écran de connexion
-  if(!api.token){
+  const hasToken = !!api.token;
+  let cachedUser = null;
+  let cachedData = null;
+  let cachedYears = null;
+
+  // Étape 1 : Lecture du cache — localStorage en priorité (plus rapide)
+  try {
+    cachedUser = lsGet(LS_USER);
+    cachedData = lsGet(LS_DATA);
+    cachedYears = lsGet(LS_YEARS);
+  } catch(e){}
+
+  // Fallback IndexedDB si localStorage vide
+  if (!cachedUser) { try { cachedUser = await dbGet("user"); } catch(e){} }
+  if (!cachedData) { try { cachedData = await dbGet("data"); } catch(e){} }
+  if (!cachedYears){ try { cachedYears = await dbGet("lockedYears"); } catch(e){} }
+
+  const hasCache = !!(cachedUser && cachedData);
+
+  // CAS 1 : Token + cache → affichage instantané, sync en arrière-plan
+  if (hasToken && hasCache) {
+    currentUser = cachedUser;
+    applyData(cachedData);
+    lockedYears = Array.isArray(cachedYears) ? cachedYears : [];
+    showApp();
+    if (navigator.onLine) syncInBackground();
+    else showOfflineBanner();
+    return;
+  }
+
+  // CAS 2 : Token mais pas de cache → sync obligatoire
+  if (hasToken) {
+    if (navigator.onLine) {
+      try {
+        await fetchAndCache();
+        showApp();
+        return;
+      } catch(err) {
+        if (err && err.offline) {
+          showApp();
+          showOfflineBanner();
+          return;
+        }
+        if (err && err.expired) {
+          hideBootScreen();
+          renderAuthScreen();
+          setAuthError("Session expirée. Reconnectez-vous.");
+          return;
+        }
+        hideBootScreen();
+        renderAuthScreen();
+        setAuthError("Erreur de connexion. Réessayez.");
+        return;
+      }
+    }
     hideBootScreen();
     renderAuthScreen();
     return;
   }
 
-  // Étape 1 : Charge le cache local IMMÉDIATEMENT (affichage instantané)
-  let hasCache = false;
-  try{
-    const [cachedUser, cachedData, cachedYears] = await Promise.all([
-      dbGet("user"),
-      dbGet("data"),
-      dbGet("lockedYears")
-    ]);
-
-    if(cachedUser && cachedData){
-      currentUser = cachedUser;
-      applyData(cachedData);
-      lockedYears = Array.isArray(cachedYears) ? cachedYears : [];
-      hasCache = true;
-      showApp();  // ✅ Affichage instantané depuis le cache
-      console.log("[INPTIC] Affichage depuis le cache local");
-    }
-  }catch(e){ console.warn("Cache read error:", e); }
-
-  // Étape 2 : Synchronise avec le serveur en arrière-plan
-  if(navigator.onLine){
-    syncInBackground();
-  }else{
-    showOfflineBanner();
-    if(!hasCache){
-      // Pas de cache ET pas de réseau → impossible de continuer
-      hideBootScreen();
-      renderAuthScreen();
-      setAuthError("Pas de connexion. Connectez-vous une première fois avec Internet.");
-    }
-  }
+  // CAS 3 : Pas de token → écran de connexion
+  hideBootScreen();
+  renderAuthScreen();
 })();
 
-// Sécurité : masque le splash après 4 secondes maxi
 setTimeout(hideBootScreen, 4000);
 
 })();
