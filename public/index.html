@@ -1771,7 +1771,7 @@ function pdfRows(list, kind, admin){
   const isEtudiant = currentUser && currentUser.role === "etudiant";
   return list.map((p, index) => `
     <div class="pdf-row">
-      <span class="pdf-num">${index + 1}</span>
+      <span class="pdf-num">${list.length - index}</span>
       <div class="pdf-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
           <path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/>
