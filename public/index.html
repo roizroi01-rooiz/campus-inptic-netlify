@@ -20,7 +20,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; touch-action: manipulation; }
+  html, body { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; touch-action: manipulation; overscroll-behavior-y: none; }
   html { touch-action: pan-x pan-y; }
   button, a, .btn, .pdf-btn, .icon-btn, .notif-btn, .menu-toggle,
   input, select, textarea, .text-input, .auth-tab, .nav a { touch-action: manipulation; }
@@ -772,6 +772,26 @@
 <script>
 (function(){
 "use strict";
+
+/* =========================================================================
+   ANTI PULL-TO-REFRESH / ANTI OVERSCOLL
+   ========================================================================= */
+let _touchStartY = 0;
+window.addEventListener('touchstart', (e) => {
+  // On enregistre la position initiale du doigt
+  _touchStartY = e.touches[0].clientY;
+}, { passive: false });
+
+window.addEventListener('touchmove', (e) => {
+  const touchY = e.touches[0].clientY;
+  const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+  
+  // Si on est tout en haut de la page et qu'on glisse vers le bas (vers le bas = Y augmente)
+  if (scrollTop <= 0 && touchY > _touchStartY) {
+    e.preventDefault(); // On bloque le comportement par défaut (le rafraîchissement)
+    e.stopPropagation();
+  }
+}, { passive: false });
 
 /* =========================================================================
    INDEXEDDB — Cache local persistant
