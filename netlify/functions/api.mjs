@@ -26,10 +26,24 @@ class HttpError extends Error {
   constructor(status, message) { super(message); this.status = status; }
 }
 
+/* ============================================================
+   CORS — Nécessaire pour l'application mobile Capacitor
+   ============================================================ */
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Max-Age": "86400"
+};
+
 const json = (data, status = 200) =>
   new Response(JSON.stringify(data), {
     status,
-    headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" }
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      "Cache-Control": "no-store",
+      ...CORS_HEADERS
+    }
   });
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -121,7 +135,7 @@ const newSession = (user) =>
     user: user.role === "admin" ? user : publicStudent(user)
   });
 
-/* ---------- AUTHENTIFICATION (header OU query param) ---------- */
+/* ---------- AUTHENTIFICATION ---------- */
 
 async function authenticate(req, s) {
   const h = req.headers.get("authorization") || "";
@@ -225,7 +239,6 @@ async function signup(req, s) {
   if (password.length < 6 || password.length > 200) throw new HttpError(400, "Le mot de passe doit contenir au moins 6 caractères.");
   if (!FILIERES.includes(b.filiere) || !NIVEAUX.includes(b.niveau)) throw new HttpError(400, "Filière ou niveau invalide.");
 
-  // ✅ Refus si l'année est verrouillée
   if (await isYearLocked(s, anneeChoisie)) {
     throw new HttpError(403, `L'année universitaire ${anneeChoisie} est verrouillée. Contactez l'administrateur.`);
   }
@@ -337,7 +350,7 @@ async function deleteStudent(s, id) {
   return json({ ok: true });
 }
 
-/* ---------- SUPPRESSION FIN D'ANNÉE (+ verrouillage auto) ---------- */
+/* ---------- SUPPRESSION FIN D'ANNÉE ---------- */
 
 async function purgeYear(s, annee) {
   if (!annee) throw new HttpError(400, "Année scolaire manquante.");
@@ -368,7 +381,6 @@ async function purgeYear(s, annee) {
     stats.files++;
   }));
 
-  // ✅ Verrouillage automatique de l'année purgée
   await lockYear(s, annee);
 
   return json({
@@ -435,7 +447,6 @@ async function uploadDoc(req, s, url) {
   if (!buf.byteLength) throw new HttpError(400, "Fichier vide.");
   if (buf.byteLength > MAX_PDF) throw new HttpError(413, "Fichier trop volumineux (max 5 Mo).");
 
-  // ✅ Détection du type réel du fichier
   const mimeType = detectMimeType(buf);
   if (!mimeType) {
     throw new HttpError(400, "Format non supporté. Utilisez un PDF ou une image (JPG, PNG, GIF, WebP).");
@@ -448,7 +459,6 @@ async function uploadDoc(req, s, url) {
   commentaire = clean(commentaire, 1000);
   titre = clean(titre, 200);
 
-  // ✅ Titre auto-généré si absent
   if (!titre) {
     if (kind === "communiques") {
       titre = "Communiqué du " + new Date().toLocaleDateString("fr-FR");
@@ -488,7 +498,7 @@ function docKindLabel(kind) {
   }[kind] || "Nouveau document";
 }
 
-/* ---------- DOWNLOAD (Range + ETag + Cache, PDF et images) ---------- */
+/* ---------- DOWNLOAD ---------- */
 
 async function downloadDoc(req, me, s, id, url) {
   const d = await s.get("docs/" + id, { type: "json" });
@@ -497,7 +507,7 @@ async function downloadDoc(req, me, s, id, url) {
   const etag = '"' + id + "-" + (d.taille || 0) + '"';
   const ifNoneMatch = req.headers.get("if-none-match") || "";
   if (ifNoneMatch === etag) {
-    return new Response(null, { status: 304, headers: { ETag: etag } });
+    return new Response(null, { status: 304, headers: { ETag: etag, ...CORS_HEADERS } });
   }
 
   const buf = await s.get("files/" + id, { type: "arrayBuffer" });
@@ -515,7 +525,8 @@ async function downloadDoc(req, me, s, id, url) {
     "Cache-Control": "private, max-age=86400",
     "ETag": etag,
     "Accept-Ranges": "bytes",
-    "X-Content-Type-Options": "nosniff"
+    "X-Content-Type-Options": "nosniff",
+    ...CORS_HEADERS
   };
 
   const rangeHeader = req.headers.get("range");
@@ -566,7 +577,7 @@ async function deleteDoc(s, id) {
   return json({ ok: true });
 }
 
-/* ---------- passage au niveau supérieur / redoublement ---------- */
+/* ---------- passage / redoublement ---------- */
 
 const ORDRE_NIVEAUX = ["L1", "L2", "L3"];
 function niveauSuivant(niveau){
@@ -761,6 +772,11 @@ function vapidPublicKey() {
 /* ---------- routeur ---------- */
 
 export default async (req) => {
+  // ✅ Preflight CORS — indispensable pour Capacitor
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: CORS_HEADERS });
+  }
+
   try {
     if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET.length < 16) {
       throw new HttpError(500, "Configuration serveur incomplète : variable SESSION_SECRET manquante.");

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Inptic</string>
+    <string name="title_activity_main">Inptic</string>
+    <string name="package_name">com.inptic.app</string>
+    <string name="custom_url_scheme">com.inptic.app</string>
+</resources>

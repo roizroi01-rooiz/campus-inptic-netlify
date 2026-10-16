@@ -331,7 +331,6 @@
   .sidebar-scrim{display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:30;}
   .hidden{display:none !important;}
 
-  /* BANNIÈRE HORS-LIGNE */
   #offlineBanner{
     position:fixed; top:0; left:0; right:0; z-index:9000;
     background:linear-gradient(135deg, #F2B84B, #D99A2B);
@@ -357,7 +356,6 @@
     50% { opacity:.4; }
   }
 
-  /* ÉCRAN DE DÉMARRAGE */
   #bootScreen{
     position:fixed; inset:0; z-index:9999;
     background:var(--navy-950);
@@ -518,7 +516,6 @@
   .notif-close-btn:hover{ color:var(--ink); border-color:var(--blue); background: var(--navy-700); }
   @media (min-width:521px){ .notif-close-btn{display:none;} }
 
-  /* VISIONNEUSE PDF.js */
   #pdfMobileViewer{
     position:fixed; inset:0; z-index:10000;
     background:#0F1B2D;
@@ -684,7 +681,7 @@
 </div>
 
 <div id="bootScreen">
-  <img src="/inptic.jpg" alt="INPTIC">
+  <img src="inptic.jpg" alt="INPTIC">
   <div class="boot-name">INPTIC</div>
   <div class="boot-sub">Gestion universitaire</div>
   <div class="boot-spinner"></div>
@@ -696,7 +693,7 @@
   <div class="sidebar-scrim" id="scrim"></div>
   <aside class="sidebar" id="sidebar">
     <div class="brand">
-      <img src="/inptic.jpg" alt="INPTIC" class="brand-mark">
+      <img src="inptic.jpg" alt="INPTIC" class="brand-mark">
       <div class="brand-text">
         <strong>INPTIC</strong>
         <span>GI &amp; RT · L1 – L3</span>
@@ -774,21 +771,23 @@
 "use strict";
 
 /* =========================================================================
+   CONFIGURATION NETLIFY (URL ABSOLUE POUR L'APPLICATION MOBILE)
+   ========================================================================= */
+const NETLIFY_URL = "https://inpticc.netlify.app";
+
+/* =========================================================================
    ANTI PULL-TO-REFRESH / ANTI OVERSCOLL
    ========================================================================= */
 let _touchStartY = 0;
 window.addEventListener('touchstart', (e) => {
-  // On enregistre la position initiale du doigt
   _touchStartY = e.touches[0].clientY;
 }, { passive: false });
 
 window.addEventListener('touchmove', (e) => {
   const touchY = e.touches[0].clientY;
   const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
-  
-  // Si on est tout en haut de la page et qu'on glisse vers le bas (vers le bas = Y augmente)
   if (scrollTop <= 0 && touchY > _touchStartY) {
-    e.preventDefault(); // On bloque le comportement par défaut (le rafraîchissement)
+    e.preventDefault();
     e.stopPropagation();
   }
 }, { passive: false });
@@ -867,7 +866,7 @@ function updateOfflineState(){
 }
 
 /* =========================================================================
-   HELPERS LOCALSTORAGE (backup du cache)
+   HELPERS LOCALSTORAGE
    ========================================================================= */
 const LS_USER  = "inptic.cached-user";
 const LS_DATA  = "inptic.cached-data";
@@ -910,7 +909,7 @@ const api = {
     }
     let r;
     try{
-      r = await fetch("/api" + path, {method, headers, body, cache: "no-store"});
+      r = await fetch(NETLIFY_URL + "/api" + path, {method, headers, body, cache: "no-store"});
     }catch(e){
       const err = new Error("Connexion impossible. Vérifiez votre accès Internet.");
       err.offline = true;
@@ -978,7 +977,7 @@ function applyData(d){
 
 async function loadLockedYears(){
   try{
-    const r = await fetch("/api/locked-years", { cache: "no-store" });
+    const r = await fetch(NETLIFY_URL + "/api/locked-years", { cache: "no-store" });
     if(!r.ok){ lockedYears = []; return; }
     const j = await r.json();
     lockedYears = Array.isArray(j.years) ? j.years : [];
@@ -1061,7 +1060,7 @@ let currentUser = null;
 let authMode = "login";
 let authSuccessMsg = "";
 
-const AUTH_LOGO = `<img src="/inptic.jpg" alt="INPTIC">`;
+const AUTH_LOGO = `<img src="inptic.jpg" alt="INPTIC">`;
 
 function authHeader(){
   return `<div class="auth-logo">${AUTH_LOGO}<div><strong>INPTIC</strong><span>GI &amp; RT · L1 – L3</span></div></div>
@@ -1297,7 +1296,7 @@ function toast(msg){
 
 function downloadRemotePdf(pdf){
   if(!api.token){ toast("Session expirée. Reconnectez-vous."); return; }
-  const url = "/api/docs/" + encodeURIComponent(pdf.id) + "/file?token=" + encodeURIComponent(api.token) + "&dl=1";
+  const url = NETLIFY_URL + "/api/docs/" + encodeURIComponent(pdf.id) + "/file?token=" + encodeURIComponent(api.token) + "&dl=1";
   const a = document.createElement("a");
   a.href = url;
   a.download = pdf.nomFichier || "document.pdf";
@@ -1333,7 +1332,7 @@ async function openRemotePdf(pdf){
   const existing = document.getElementById("pdfMobileViewer");
   if(existing) existing.remove();
 
-  const url = "/api/docs/" + encodeURIComponent(pdf.id) + "/file?token=" + encodeURIComponent(api.token);
+  const url = NETLIFY_URL + "/api/docs/" + encodeURIComponent(pdf.id) + "/file?token=" + encodeURIComponent(api.token);
   const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
   if(isMobile){
@@ -1482,7 +1481,7 @@ function preloadRecentPdfs(){
     .sort((a,b) => b.dateAjout.localeCompare(a.dateAjout))
     .slice(0, 3);
   all.forEach(pdf => {
-    const url = "/api/docs/" + encodeURIComponent(pdf.id) + "/file?token=" + encodeURIComponent(api.token);
+    const url = NETLIFY_URL + "/api/docs/" + encodeURIComponent(pdf.id) + "/file?token=" + encodeURIComponent(api.token);
     if(document.querySelector('link[href="' + url + '"]')) return;
     const link = document.createElement("link");
     link.rel = "prefetch";
@@ -2464,7 +2463,7 @@ function urlBase64ToUint8Array(base64String){
 
 async function getVapidPublicKey(){
   try{
-    const r = await fetch("/api/push/vapid-public-key", { cache: "no-store" });
+    const r = await fetch(NETLIFY_URL + "/api/push/vapid-public-key", { cache: "no-store" });
     if(!r.ok) return null;
     const j = await r.json();
     return j.publicKey || null;
@@ -2585,9 +2584,6 @@ async function clearServerBadge(){
   }
 }
 
-/* =========================================================================
-   ÉVÉNEMENTS RÉSEAU
-   ========================================================================= */
 window.addEventListener("online", () => {
   hideOfflineBanner();
   if(currentUser) syncInBackground();
@@ -2604,9 +2600,6 @@ document.addEventListener("visibilitychange", () => {
   }
 });
 
-/* =========================================================================
-   DÉMARRAGE — OFFLINE-FIRST AVEC DOUBLE CACHE (IndexedDB + localStorage)
-   ========================================================================= */
 (async function boot(){
   api.load();
 
@@ -2615,21 +2608,18 @@ document.addEventListener("visibilitychange", () => {
   let cachedData = null;
   let cachedYears = null;
 
-  // Étape 1 : Lecture du cache — localStorage en priorité (plus rapide)
   try {
     cachedUser = lsGet(LS_USER);
     cachedData = lsGet(LS_DATA);
     cachedYears = lsGet(LS_YEARS);
   } catch(e){}
 
-  // Fallback IndexedDB si localStorage vide
   if (!cachedUser) { try { cachedUser = await dbGet("user"); } catch(e){} }
   if (!cachedData) { try { cachedData = await dbGet("data"); } catch(e){} }
   if (!cachedYears){ try { cachedYears = await dbGet("lockedYears"); } catch(e){} }
 
   const hasCache = !!(cachedUser && cachedData);
 
-  // CAS 1 : Token + cache → affichage instantané, sync en arrière-plan
   if (hasToken && hasCache) {
     currentUser = cachedUser;
     applyData(cachedData);
@@ -2640,7 +2630,6 @@ document.addEventListener("visibilitychange", () => {
     return;
   }
 
-  // CAS 2 : Token mais pas de cache → sync obligatoire
   if (hasToken) {
     if (navigator.onLine) {
       try {
@@ -2670,7 +2659,6 @@ document.addEventListener("visibilitychange", () => {
     return;
   }
 
-  // CAS 3 : Pas de token → écran de connexion
   hideBootScreen();
   renderAuthScreen();
 })();
