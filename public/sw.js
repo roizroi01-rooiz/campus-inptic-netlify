@@ -1,11 +1,11 @@
 /* =============================================================================
    SERVICE WORKER — INPTIC Campus
-   Version v14 : cache PDF hors-ligne + nettoyage
+   Version v15 : cache PDF hors-ligne + fallback "Regarder hors ligne"
    ============================================================================= */
-const VERSION = "campus-inptic-v14";
+const VERSION = "campus-inptic-v15"; // ⚠️ Changé de v14 à v15
 const STATIC_CACHE = VERSION + "-static";
 const FONT_CACHE = VERSION + "-fonts";
-const PDF_CACHE = "campus-pdf-v1";
+const PDF_CACHE = "campus-pdf-v1"; // On garde le même nom pour ne pas perdre les PDF déjà téléchargés
 const BADGE_CACHE = "badge-counter";
 
 const ASSETS = [

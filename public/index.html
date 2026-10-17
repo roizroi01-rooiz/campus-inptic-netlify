@@ -1261,13 +1261,7 @@ async function logout(){
   try{
     await dbClear();
     lsClear();
-    // ⚠️ LIGNE SUIVANTE COMMENTÉE : Le cache des PDF n'est plus supprimé lors de la déconnexion
-    // if(navigator.serviceWorker && navigator.serviceWorker.controller){
-    //   navigator.serviceWorker.controller.postMessage({ type: "clear-pdf-cache" });
-    // }
-    // if("caches" in window){
-    //   await caches.delete("campus-pdf-v1");
-    // }
+    // ⚠️ Le cache des PDF n'est plus supprimé lors de la déconnexion
   }catch(e){}
 
   location.hash = "";
@@ -1309,14 +1303,17 @@ async function downloadRemotePdf(pdf){
     if (!response.ok) throw new Error("Erreur réseau");
     const blob = await response.blob();
 
-    // 2. Sauvegarder dans le cache de l'application (pour toujours)
+    // 2. FORCER LE TYPE PDF (Correction du bug)
+    const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+
+    // 3. Sauvegarder dans le cache de l'application
     if ("caches" in window) {
       const cache = await caches.open("campus-pdf-v1");
-      await cache.put("/pdf-cache/" + pdf.id, new Response(blob));
+      await cache.put("/pdf-cache/" + pdf.id, new Response(pdfBlob, { headers: { 'Content-Type': 'application/pdf' } }));
     }
 
-    // 3. Proposer le téléchargement natif (dans le dossier Téléchargements)
-    const blobUrl = URL.createObjectURL(blob);
+    // 4. Proposer le téléchargement natif
+    const blobUrl = URL.createObjectURL(pdfBlob);
     const a = document.createElement("a");
     a.href = blobUrl;
     a.download = pdf.nomFichier || pdf.titre + ".pdf";
@@ -1326,12 +1323,9 @@ async function downloadRemotePdf(pdf){
     URL.revokeObjectURL(blobUrl);
     
     toast("✅ PDF téléchargé et conservé hors-ligne");
-    
-    // Mettre à jour l'icône 📥 dans l'interface
     markCachedPdfs(); 
   } catch(err) {
     console.error("Erreur de téléchargement:", err);
-    // Fallback si le fetch échoue (ex: problème de CORS)
     toast("Téléchargement via le navigateur…");
     const fallbackUrl = url + "&dl=1";
     const a = document.createElement("a");
@@ -1363,44 +1357,43 @@ async function loadPdfJsLib(){
   });
 }
 
-/* ================= OUVERTURE PDF AVEC CACHE PRIORITAIRE ================= */
+/* ================= OUVERTURE PDF AVEC MESSAGE PERSONNALISÉ ================= */
 async function openRemotePdf(pdf){
-  // 1. On vérifie si le PDF est déjà dans le cache (même sans internet)
   const cacheKey = "/pdf-cache/" + pdf.id;
   let blobUrl = null;
   let isFromCache = false;
 
+  // 1. On cherche le PDF dans la mémoire du téléphone
   if ("caches" in window) {
     try {
       const cache = await caches.open("campus-pdf-v1");
       const cachedResponse = await cache.match(cacheKey);
       if (cachedResponse) {
         const blob = await cachedResponse.blob();
-        blobUrl = URL.createObjectURL(blob);
+        blobUrl = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
         isFromCache = true;
-        console.log("PDF chargé depuis la mémoire du téléphone");
       }
     } catch(e) { console.warn("Erreur lecture cache:", e); }
   }
 
-  // 2. Si pas dans le cache, on le télécharge depuis internet
+  // 2. Si pas dans le cache, on le télécharge
   if (!blobUrl) {
-    if(!api.token){ toast("Session expirée. Reconnectez-vous pour télécharger."); return; }
+    if(!api.token){ toast("Session expirée. Reconnectez-vous."); return; }
     try {
       toast("Téléchargement et mise en cache...");
       const url = NETLIFY_URL + "/api/docs/" + encodeURIComponent(pdf.id) + "/file?token=" + encodeURIComponent(api.token);
       const response = await fetch(url);
       if (!response.ok) throw new Error("Erreur réseau");
       const blob = await response.blob();
-      blobUrl = URL.createObjectURL(blob);
+      
+      const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+      blobUrl = URL.createObjectURL(pdfBlob);
 
-      // On sauvegarde pour toujours dans la mémoire
       if ("caches" in window) {
         const cache = await caches.open("campus-pdf-v1");
-        await cache.put(cacheKey, new Response(blob));
+        await cache.put(cacheKey, new Response(pdfBlob, { headers: { 'Content-Type': 'application/pdf' } }));
       }
     } catch(err) {
-      console.error("Erreur de téléchargement:", err);
       toast("Impossible de charger le document. Vérifiez votre connexion.");
       return;
     }
@@ -1440,7 +1433,7 @@ async function openRemotePdf(pdf){
       closed = true;
       try { if(renderingTask && renderingTask.cancel) renderingTask.cancel(); } catch(e){}
       try { if(pdfDoc) pdfDoc.destroy(); } catch(e){}
-      try { URL.revokeObjectURL(blobUrl); } catch(e){} // Libère la mémoire
+      try { URL.revokeObjectURL(blobUrl); } catch(e){}
       
       const el = document.getElementById("pdfMobileViewer");
       if(el) el.remove();
@@ -1469,7 +1462,7 @@ async function openRemotePdf(pdf){
       try {
         const pdfjsLib = await loadPdfJsLib();
         const loadingTask = pdfjsLib.getDocument({
-          url: blobUrl, // <--- On utilise le fichier en mémoire
+          url: blobUrl,
           withCredentials: false,
           disableRange: true,
           disableStream: true,
@@ -1506,16 +1499,20 @@ async function openRemotePdf(pdf){
           renderingTask = null;
         }
         
-        // Mettre à jour l'icône 📥 dans la liste
         markCachedPdfs();
         
       } catch(err){
         if(closed) return;
-        console.error("PDF render error:", err);
+        console.warn("PDF.js a échoué (hors-ligne), affichage du lecteur natif :", err);
+        
+        // 🟢 MESSAGE PERSONNALISÉ POUR LE MODE HORS-LIGNE 🟢
         container.innerHTML = `
-          <div style="padding:40px 20px;text-align:center;color:#93A3BD;">
-            <div style="font-size:48px;margin-bottom:12px;">📄</div>
-            <p style="margin-bottom:20px;font-size:14px;">Impossible d'afficher le document.</p>
+          <div style="padding:40px 20px;text-align:center;color:#93A3BD; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%;">
+            <div style="font-size:48px;margin-bottom:12px;">📥</div>
+            <p style="margin-bottom:20px;font-size:14px; color:#E8ECF2;">Document enregistré.<br>Disponible hors-ligne.</p>
+            <a href="${blobUrl}" target="_blank" rel="noopener" style="background:#3DDC97;color:#0B1524;padding:12px 20px;border-radius:8px;font-weight:600;text-decoration:none;font-size:14px; display:flex; align-items:center; gap:8px;">
+              👁️ Regarder hors ligne
+            </a>
           </div>
         `;
       }
@@ -1527,31 +1524,11 @@ async function openRemotePdf(pdf){
   // Mode PC (Desktop)
   const overlay = document.createElement("div");
   overlay.id = "pdfLoaderOverlay";
-  overlay.style.cssText = `
-    position:fixed; inset:0; z-index:9999;
-    background:rgba(11,21,36,.92);
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    gap:16px; color:#E8ECF2; font-family:inherit;
-  `;
-  overlay.innerHTML = `
-    <div style="width:44px;height:44px;border:3px solid rgba(255,255,255,.15);border-top-color:#5B8DEF;border-radius:50%;animation:pdfSpin .8s linear infinite;"></div>
-    <div style="font-size:14px;font-weight:600;">Ouverture du document…</div>
-    <div style="font-size:12px;color:#93A3BD;">${esc(pdf.titre || "")}</div>
-  `;
-  if(!document.getElementById("pdfLoaderStyle")){
-    const style = document.createElement("style");
-    style.id = "pdfLoaderStyle";
-    style.textContent = "@keyframes pdfSpin{to{transform:rotate(360deg)}}";
-    document.head.appendChild(style);
-  }
+  overlay.style.cssText = `position:fixed; inset:0; z-index:9999; background:rgba(11,21,36,.92); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; color:#E8ECF2; font-family:inherit;`;
+  overlay.innerHTML = `<div style="width:44px;height:44px;border:3px solid rgba(255,255,255,.15);border-top-color:#5B8DEF;border-radius:50%;animation:pdfSpin .8s linear infinite;"></div><div style="font-size:14px;font-weight:600;">Ouverture du document…</div>`;
   document.body.appendChild(overlay);
-  
-  const win = window.open(blobUrl, "_blank");
-  if(!win){ window.location.href = blobUrl; }
-  setTimeout(() => {
-    const el = document.getElementById("pdfLoaderOverlay");
-    if(el) el.remove();
-  }, 1500);
+  window.open(blobUrl, "_blank");
+  setTimeout(() => { const el = document.getElementById("pdfLoaderOverlay"); if(el) el.remove(); }, 1500);
 }
 
 function preloadRecentPdfs(){
