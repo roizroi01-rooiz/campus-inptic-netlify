@@ -1261,12 +1261,13 @@ async function logout(){
   try{
     await dbClear();
     lsClear();
-    if(navigator.serviceWorker && navigator.serviceWorker.controller){
-      navigator.serviceWorker.controller.postMessage({ type: "clear-pdf-cache" });
-    }
-    if("caches" in window){
-      await caches.delete("campus-pdf-v1");
-    }
+    // ⚠️ LIGNE SUIVANTE COMMENTÉE : Le cache des PDF n'est plus supprimé lors de la déconnexion
+    // if(navigator.serviceWorker && navigator.serviceWorker.controller){
+    //   navigator.serviceWorker.controller.postMessage({ type: "clear-pdf-cache" });
+    // }
+    // if("caches" in window){
+    //   await caches.delete("campus-pdf-v1");
+    // }
   }catch(e){}
 
   location.hash = "";
@@ -1294,17 +1295,53 @@ function toast(msg){
   toast._t = setTimeout(()=> el.classList.remove("show"), 2200);
 }
 
-function downloadRemotePdf(pdf){
+/* ================= TÉLÉCHARGEMENT ET CACHE PERMANENT ================= */
+async function downloadRemotePdf(pdf){
   if(!api.token){ toast("Session expirée. Reconnectez-vous."); return; }
-  const url = NETLIFY_URL + "/api/docs/" + encodeURIComponent(pdf.id) + "/file?token=" + encodeURIComponent(api.token) + "&dl=1";
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = pdf.nomFichier || "document.pdf";
-  a.rel = "noopener";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  toast("Téléchargement…");
+  
+  const url = NETLIFY_URL + "/api/docs/" + encodeURIComponent(pdf.id) + "/file?token=" + encodeURIComponent(api.token);
+  
+  try {
+    toast("Téléchargement et mise en cache…");
+    
+    // 1. Récupérer le fichier en mémoire (Blob)
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Erreur réseau");
+    const blob = await response.blob();
+
+    // 2. Sauvegarder dans le cache de l'application (pour toujours)
+    if ("caches" in window) {
+      const cache = await caches.open("campus-pdf-v1");
+      await cache.put("/pdf-cache/" + pdf.id, new Response(blob));
+    }
+
+    // 3. Proposer le téléchargement natif (dans le dossier Téléchargements)
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = pdf.nomFichier || pdf.titre + ".pdf";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(blobUrl);
+    
+    toast("✅ PDF téléchargé et conservé hors-ligne");
+    
+    // Mettre à jour l'icône 📥 dans l'interface
+    markCachedPdfs(); 
+  } catch(err) {
+    console.error("Erreur de téléchargement:", err);
+    // Fallback si le fetch échoue (ex: problème de CORS)
+    toast("Téléchargement via le navigateur…");
+    const fallbackUrl = url + "&dl=1";
+    const a = document.createElement("a");
+    a.href = fallbackUrl;
+    a.download = pdf.nomFichier || "document.pdf";
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
 }
 
 /* ================= PDF.js ================= */
@@ -1326,13 +1363,52 @@ async function loadPdfJsLib(){
   });
 }
 
+/* ================= OUVERTURE PDF AVEC CACHE PRIORITAIRE ================= */
 async function openRemotePdf(pdf){
-  if(!api.token){ toast("Session expirée. Reconnectez-vous."); return; }
+  // 1. On vérifie si le PDF est déjà dans le cache (même sans internet)
+  const cacheKey = "/pdf-cache/" + pdf.id;
+  let blobUrl = null;
+  let isFromCache = false;
+
+  if ("caches" in window) {
+    try {
+      const cache = await caches.open("campus-pdf-v1");
+      const cachedResponse = await cache.match(cacheKey);
+      if (cachedResponse) {
+        const blob = await cachedResponse.blob();
+        blobUrl = URL.createObjectURL(blob);
+        isFromCache = true;
+        console.log("PDF chargé depuis la mémoire du téléphone");
+      }
+    } catch(e) { console.warn("Erreur lecture cache:", e); }
+  }
+
+  // 2. Si pas dans le cache, on le télécharge depuis internet
+  if (!blobUrl) {
+    if(!api.token){ toast("Session expirée. Reconnectez-vous pour télécharger."); return; }
+    try {
+      toast("Téléchargement et mise en cache...");
+      const url = NETLIFY_URL + "/api/docs/" + encodeURIComponent(pdf.id) + "/file?token=" + encodeURIComponent(api.token);
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Erreur réseau");
+      const blob = await response.blob();
+      blobUrl = URL.createObjectURL(blob);
+
+      // On sauvegarde pour toujours dans la mémoire
+      if ("caches" in window) {
+        const cache = await caches.open("campus-pdf-v1");
+        await cache.put(cacheKey, new Response(blob));
+      }
+    } catch(err) {
+      console.error("Erreur de téléchargement:", err);
+      toast("Impossible de charger le document. Vérifiez votre connexion.");
+      return;
+    }
+  }
 
   const existing = document.getElementById("pdfMobileViewer");
   if(existing) existing.remove();
 
-  const url = NETLIFY_URL + "/api/docs/" + encodeURIComponent(pdf.id) + "/file?token=" + encodeURIComponent(api.token);
   const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
   if(isMobile){
@@ -1342,7 +1418,7 @@ async function openRemotePdf(pdf){
     viewer.id = "pdfMobileViewer";
     viewer.innerHTML = `
       <div class="pdf-viewer-header">
-        <span class="pdf-viewer-title">${esc(pdf.titre || "Document")}</span>
+        <span class="pdf-viewer-title">${esc(pdf.titre || "Document")} ${isFromCache ? "📥 (Hors-ligne)" : ""}</span>
         <button class="pdf-viewer-close" id="closePdfViewerBtn">Fermer</button>
       </div>
       <div id="pdfCanvasContainer" class="pdf-canvas-container">
@@ -1364,6 +1440,8 @@ async function openRemotePdf(pdf){
       closed = true;
       try { if(renderingTask && renderingTask.cancel) renderingTask.cancel(); } catch(e){}
       try { if(pdfDoc) pdfDoc.destroy(); } catch(e){}
+      try { URL.revokeObjectURL(blobUrl); } catch(e){} // Libère la mémoire
+      
       const el = document.getElementById("pdfMobileViewer");
       if(el) el.remove();
       document.body.classList.remove("modal-open");
@@ -1391,7 +1469,7 @@ async function openRemotePdf(pdf){
       try {
         const pdfjsLib = await loadPdfJsLib();
         const loadingTask = pdfjsLib.getDocument({
-          url,
+          url: blobUrl, // <--- On utilise le fichier en mémoire
           withCredentials: false,
           disableRange: true,
           disableStream: true,
@@ -1427,6 +1505,10 @@ async function openRemotePdf(pdf){
           await renderingTask.promise;
           renderingTask = null;
         }
+        
+        // Mettre à jour l'icône 📥 dans la liste
+        markCachedPdfs();
+        
       } catch(err){
         if(closed) return;
         console.error("PDF render error:", err);
@@ -1434,7 +1516,6 @@ async function openRemotePdf(pdf){
           <div style="padding:40px 20px;text-align:center;color:#93A3BD;">
             <div style="font-size:48px;margin-bottom:12px;">📄</div>
             <p style="margin-bottom:20px;font-size:14px;">Impossible d'afficher le document.</p>
-            <a href="${url}" target="_blank" rel="noopener" style="background:#5B8DEF;color:#0B1524;padding:12px 20px;border-radius:8px;font-weight:600;text-decoration:none;font-size:14px;">Ouvrir dans un nouvel onglet</a>
           </div>
         `;
       }
@@ -1443,6 +1524,7 @@ async function openRemotePdf(pdf){
     return;
   }
 
+  // Mode PC (Desktop)
   const overlay = document.createElement("div");
   overlay.id = "pdfLoaderOverlay";
   overlay.style.cssText = `
@@ -1463,14 +1545,13 @@ async function openRemotePdf(pdf){
     document.head.appendChild(style);
   }
   document.body.appendChild(overlay);
-  const cleanup = () => {
+  
+  const win = window.open(blobUrl, "_blank");
+  if(!win){ window.location.href = blobUrl; }
+  setTimeout(() => {
     const el = document.getElementById("pdfLoaderOverlay");
     if(el) el.remove();
-  };
-  setTimeout(cleanup, 15000);
-  const win = window.open(url, "_blank");
-  if(!win){ window.location.href = url; cleanup(); }
-  else { setTimeout(cleanup, 800); }
+  }, 1500);
 }
 
 function preloadRecentPdfs(){
