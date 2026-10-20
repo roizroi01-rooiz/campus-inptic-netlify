@@ -7,7 +7,7 @@ import webpush from "web-push";
 
 const scryptAsync = promisify(scrypt);
 
-const FILIERES = ["GI", "RT"];
+const FILIERES = ["GI", "RT", "MTIC"]; // ← 3ème filière ajoutée
 const NIVEAUX = ["L1", "L2", "L3"];
 const KINDS = ["schedule", "notes", "resultats", "rattrapage", "communiques"];
 const MAX_PDF = 5 * 1024 * 1024;
@@ -32,8 +32,9 @@ class HttpError extends Error {
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Max-Age": "86400"
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, If-None-Match",
+  "Access-Control-Max-Age": "86400",
+  "Access-Control-Expose-Headers": "ETag, Content-Length, Content-Range"
 };
 
 const json = (data, status = 200) =>
@@ -56,7 +57,53 @@ const validEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) && v.length <= 20
 const clean = (v, max) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 const emailKey = (email) => "emails/" + sha256(email).toString("hex");
 
-/* ---------- DÉTECTION DU TYPE DE FICHIER (magic bytes) ---------- */
+/* ============================================================
+   ⚡ INDEX DES DOCS
+   Permet à /api/data de faire 1 lecture au lieu de 500.
+   ============================================================ */
+const DOCS_INDEX_KEY = "docs-index";
+const INDEX_TTL = 30_000;
+let _docsIndexCache = { data: null, ts: 0 };
+
+function invalidateDocsIndexCache(){ _docsIndexCache = { data: null, ts: 0 }; }
+
+async function getDocsFromIndex(s) {
+  if (_docsIndexCache.data && (Date.now() - _docsIndexCache.ts) < INDEX_TTL) {
+    return _docsIndexCache.data;
+  }
+  const idx = await s.get(DOCS_INDEX_KEY, { type: "json" });
+  if (Array.isArray(idx)) {
+    _docsIndexCache = { data: idx, ts: Date.now() };
+    return idx;
+  }
+  const docs = await listAll(s, "docs/");
+  await s.setJSON(DOCS_INDEX_KEY, docs);
+  _docsIndexCache = { data: docs, ts: Date.now() };
+  return docs;
+}
+
+async function indexAdd(s, doc) {
+  const idx = await getDocsFromIndex(s);
+  idx.push(doc);
+  await s.setJSON(DOCS_INDEX_KEY, idx);
+  _docsIndexCache = { data: idx, ts: Date.now() };
+}
+
+async function indexRemove(s, docId) {
+  const idx = await getDocsFromIndex(s);
+  const filtered = idx.filter(d => d.id !== docId);
+  await s.setJSON(DOCS_INDEX_KEY, filtered);
+  _docsIndexCache = { data: filtered, ts: Date.now() };
+}
+
+async function indexRebuild(s) {
+  const docs = await listAll(s, "docs/");
+  await s.setJSON(DOCS_INDEX_KEY, docs);
+  _docsIndexCache = { data: docs, ts: Date.now() };
+  return docs;
+}
+
+/* ---------- DÉTECTION DU TYPE DE FICHIER ---------- */
 
 function detectMimeType(buf) {
   if (!buf || buf.length < 4) return null;
@@ -279,7 +326,7 @@ const visibleDoc = (d, st) =>
 async function getData(me, s) {
   const [students, docs] = await Promise.all([
     me.role === "admin" ? listAll(s, "students/") : Promise.resolve([me.student]),
-    listAll(s, "docs/")
+    getDocsFromIndex(s)   // ⚡ 1 lecture au lieu de N
   ]);
   const visible = me.role === "admin" ? docs : docs.filter((d) => visibleDoc(d, me.student));
   visible.sort((a, b) => String(b.dateAjout).localeCompare(String(a.dateAjout)));
@@ -381,6 +428,7 @@ async function purgeYear(s, annee) {
     stats.files++;
   }));
 
+  await indexRebuild(s);
   await lockYear(s, annee);
 
   return json({
@@ -403,6 +451,7 @@ async function purgeCommuniques(s) {
     await s.delete("files/" + doc.id);
     count++;
   }));
+  await indexRebuild(s);
   return json({ ok: true, count, message: `${count} communiqué(s) supprimé(s).` });
 }
 
@@ -477,6 +526,7 @@ async function uploadDoc(req, s, url) {
   };
   await s.set("files/" + id, buf);
   await s.setJSON("docs/" + id, meta);
+  await indexAdd(s, meta);   // ⚡ Maintient l'index à jour
 
   await pushToMatching(s, {
     kind, filiere, niveau,
@@ -574,6 +624,7 @@ async function deleteDoc(s, id) {
   if (!d) throw new HttpError(404, "Document introuvable.");
   await s.delete("docs/" + id);
   await s.delete("files/" + id);
+  await indexRemove(s, id);   // ⚡ Maintient l'index à jour
   return json({ ok: true });
 }
 
@@ -772,7 +823,6 @@ function vapidPublicKey() {
 /* ---------- routeur ---------- */
 
 export default async (req) => {
-  // ✅ Preflight CORS — indispensable pour Capacitor
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: CORS_HEADERS });
   }

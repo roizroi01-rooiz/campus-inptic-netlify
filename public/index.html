@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0F1B2D">
-<meta name="description" content="Plateforme de gestion universitaire pour les filières GI et RT, de la L1 à la L3.">
+<meta name="description" content="Plateforme de gestion universitaire pour les filières GI, RT et MTIC, de la L1 à la L3.">
 <title>INPTIC — Gestion universitaire</title>
 <meta name="color-scheme" content="dark">
 <meta name="mobile-web-app-capable" content="yes">
@@ -33,6 +33,7 @@
     --teal:#3DDC97; --teal-dim:#1E4A3A;
     --gold:#F2B84B; --gold-dim:#4A3B1E;
     --blue:#5B8DEF; --blue-dim:#1E2E4E; --red:#E8637C;
+    --purple:#A78BFA; --purple-dim:#2D2544; /* Couleur pour MTIC */
     --font-display:'Fraunces', Georgia, 'Times New Roman', serif;
     --font-body:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     --sidebar-w:250px;
@@ -236,6 +237,7 @@
   .tag{display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:20px; font-size:var(--fs-xs); font-weight:600; white-space:nowrap;}
   .tag.gi{background:var(--teal-dim); color:var(--teal); border: 1px solid rgba(61,220,151,0.2);}
   .tag.rt{background:var(--gold-dim); color:var(--gold); border: 1px solid rgba(242,184,75,0.2);}
+  .tag.mtic{background:var(--purple-dim); color:var(--purple); border: 1px solid rgba(167,139,250,0.2);}
 
   .empty-state{text-align:center; padding:var(--sp-8) var(--sp-4); color:var(--ink-faint);}
   .empty-state svg{width:34px; height:34px; margin-bottom:12px; opacity:.6;}
@@ -545,14 +547,49 @@
     font-size:13px; cursor:pointer; font-family:inherit; flex-shrink:0;
   }
   #pdfMobileViewer .pdf-canvas-container{
-    flex:1; overflow-y:auto; background:#525659; padding:10px;
-    -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
-    display:flex; flex-direction:column; align-items:center;
+    flex:1;
+    overflow:auto;
+    background:#525659;
+    padding:10px;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+    touch-action:pan-x pan-y;
+  }
+  #pdfMobileViewer .pdf-canvas-inner{
+    width:max-content;
+    min-width:100%;
+    margin:0 auto;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:10px;
   }
   #pdfMobileViewer .pdf-page-canvas{
-    display:block; margin-bottom:10px; background:#fff;
-    box-shadow:0 2px 8px rgba(0,0,0,.3); max-width:100%; height:auto;
+    display:block;
+    margin:0;
+    background:#fff;
+    box-shadow:0 2px 8px rgba(0,0,0,.3);
+    max-width:none;
+    flex-shrink:0;
   }
+  #pdfMobileViewer .pdf-zoom-controls{
+    display:flex; align-items:center; gap:6px; flex-shrink:0;
+  }
+  #pdfMobileViewer .pdf-zoom-btn{
+    background:#26374F; border:1px solid rgba(255,255,255,0.12);
+    color:#E8ECF2; width:34px; height:34px; border-radius:8px;
+    font-size:20px; font-weight:600; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    font-family:inherit; line-height:1; padding:0;
+  }
+  #pdfMobileViewer .pdf-zoom-btn:active{ background:#1D2E4A; transform:scale(0.95); }
+  #pdfMobileViewer .pdf-zoom-label{
+    background:transparent; border:1px solid rgba(255,255,255,0.12);
+    color:#93A3BD; padding:0 10px; height:34px; border-radius:8px;
+    font-size:12px; font-weight:600; cursor:pointer;
+    font-family:inherit; min-width:54px;
+  }
+  #pdfMobileViewer .pdf-zoom-label:active{ background:#26374F; color:#E8ECF2; }
   #pdfMobileViewer .pdf-loading{
     display:flex; flex-direction:column; align-items:center;
     justify-content:center; padding:80px 20px; color:#93A3BD;
@@ -642,6 +679,8 @@
     .pdf-icon{ width: 40px; height: 40px; }
     .pdf-icon svg{ width: 18px; height: 18px; }
     .pdf-num{ width: 22px; height: 22px; font-size: 10px; }
+    #pdfMobileViewer .pdf-zoom-label{ min-width:44px; padding:0 6px; font-size:11px; }
+    #pdfMobileViewer .pdf-viewer-close{ padding:8px 12px; font-size:12px; }
   }
 
   @media (max-width: 520px){
@@ -696,7 +735,7 @@
       <img src="inptic.jpg" alt="INPTIC" class="brand-mark">
       <div class="brand-text">
         <strong>INPTIC</strong>
-        <span>GI &amp; RT · L1 – L3</span>
+        <span>GI, RT &amp; MTIC · L1 – L3</span>
       </div>
     </div>
     <nav class="nav" id="nav">
@@ -945,9 +984,13 @@ const api = {
 };
 
 const ROLE_LABEL = {admin:"Admin", etudiant:"Étudiant", enseignant:"Enseignant"};
-const FILIERES = ["GI","RT"];
+const FILIERES = ["GI","RT","MTIC"]; // ← 3ème filière ajoutée
 const NIVEAUX = ["L1","L2","L3"];
-const FILIERE_LABEL = {GI:"Génie Informatique", RT:"Réseaux &amp; Télécommunications"};
+const FILIERE_LABEL = {
+  GI: "Génie Informatique",
+  RT: "Réseaux &amp; Télécommunications",
+  MTIC: "Management &amp; TIC" // ← Label ajouté
+};
 
 const ANNEES_UNIV = [
   "2026-2027","2027-2028","2028-2029","2029-2030","2030-2031","2031-2032",
@@ -988,15 +1031,19 @@ async function loadLockedYears(){
    CHARGEMENT RÉSEAU + CACHE
    ========================================================================= */
 async function fetchAndCache(){
-  const j = await api.call("GET", "/me");
-  currentUser = j.user;
-  await dbSet("user", j.user);
-  lsSet(LS_USER, j.user);
+  // ⚡ /me et /data en PARALLÈLE
+  const [meRes, dataRes] = await Promise.all([
+    api.call("GET", "/me"),
+    api.call("GET", "/data")
+  ]);
 
-  const data = await api.call("GET", "/data");
-  applyData(data);
-  await dbSet("data", data);
-  lsSet(LS_DATA, data);
+  currentUser = meRes.user;
+  await dbSet("user", currentUser);
+  lsSet(LS_USER, currentUser);
+
+  applyData(dataRes);
+  await dbSet("data", dataRes);
+  lsSet(LS_DATA, dataRes);
 
   await loadLockedYears();
   await dbSet("lockedYears", lockedYears);
@@ -1063,7 +1110,7 @@ let authSuccessMsg = "";
 const AUTH_LOGO = `<img src="inptic.jpg" alt="INPTIC">`;
 
 function authHeader(){
-  return `<div class="auth-logo">${AUTH_LOGO}<div><strong>INPTIC</strong><span>GI &amp; RT · L1 – L3</span></div></div>
+  return `<div class="auth-logo">${AUTH_LOGO}<div><strong>INPTIC</strong><span>GI, RT &amp; MTIC · L1 – L3</span></div></div>
   <div class="auth-tabs">
     <button class="auth-tab ${authMode==='login'?'active':''}" data-authtab="login">Connexion</button>
     <button class="auth-tab ${authMode==='signup'?'active':''}" data-authtab="signup">Inscription</button>
@@ -1261,7 +1308,6 @@ async function logout(){
   try{
     await dbClear();
     lsClear();
-    // ⚠️ Le cache des PDF n'est plus supprimé lors de la déconnexion
   }catch(e){}
 
   location.hash = "";
@@ -1289,30 +1335,20 @@ function toast(msg){
   toast._t = setTimeout(()=> el.classList.remove("show"), 2200);
 }
 
-/* ================= TÉLÉCHARGEMENT ET CACHE PERMANENT ================= */
+/* ================= TÉLÉCHARGEMENT (action explicite utilisateur) ================= */
 async function downloadRemotePdf(pdf){
   if(!api.token){ toast("Session expirée. Reconnectez-vous."); return; }
-  
   const url = NETLIFY_URL + "/api/docs/" + encodeURIComponent(pdf.id) + "/file?token=" + encodeURIComponent(api.token);
-  
   try {
     toast("Téléchargement et mise en cache…");
-    
-    // 1. Récupérer le fichier en mémoire (Blob)
     const response = await fetch(url);
     if (!response.ok) throw new Error("Erreur réseau");
     const blob = await response.blob();
-
-    // 2. FORCER LE TYPE PDF (Correction du bug)
     const pdfBlob = new Blob([blob], { type: 'application/pdf' });
-
-    // 3. Sauvegarder dans le cache de l'application
     if ("caches" in window) {
       const cache = await caches.open("campus-pdf-v1");
       await cache.put("/pdf-cache/" + pdf.id, new Response(pdfBlob, { headers: { 'Content-Type': 'application/pdf' } }));
     }
-
-    // 4. Proposer le téléchargement natif
     const blobUrl = URL.createObjectURL(pdfBlob);
     const a = document.createElement("a");
     a.href = blobUrl;
@@ -1321,9 +1357,8 @@ async function downloadRemotePdf(pdf){
     a.click();
     a.remove();
     URL.revokeObjectURL(blobUrl);
-    
     toast("✅ PDF téléchargé et conservé hors-ligne");
-    markCachedPdfs(); 
+    markCachedPdfs();
   } catch(err) {
     console.error("Erreur de téléchargement:", err);
     toast("Téléchargement via le navigateur…");
@@ -1357,188 +1392,282 @@ async function loadPdfJsLib(){
   });
 }
 
-/* ================= OUVERTURE PDF AVEC MESSAGE PERSONNALISÉ ================= */
+/* ================= OUVERTURE PDF (réseau-first + zoom) ================= */
 async function openRemotePdf(pdf){
   const cacheKey = "/pdf-cache/" + pdf.id;
   let blobUrl = null;
   let isFromCache = false;
+  const wasOffline = !navigator.onLine;
 
-  // 1. On cherche le PDF dans la mémoire du téléphone
-  if ("caches" in window) {
+  // ─── 1. RÉSEAU D'ABORD (conditional GET pour vérifier sans re-télécharger) ───
+  if (api.token && !wasOffline) {
+    try {
+      const url = NETLIFY_URL + "/api/docs/" + encodeURIComponent(pdf.id) + "/file?token=" + encodeURIComponent(api.token);
+      const headers = {};
+      if (pdf.taille != null) headers["If-None-Match"] = `"${pdf.id}-${pdf.taille}"`;
+
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 4000);
+      const response = await fetch(url, { signal: controller.signal, headers });
+      clearTimeout(timer);
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+        blobUrl = URL.createObjectURL(pdfBlob);
+
+        if ("caches" in window) {
+          try {
+            const cache = await caches.open("campus-pdf-v1");
+            const existing = await cache.match(cacheKey);
+            if (!existing) {
+              await cache.put(cacheKey, new Response(pdfBlob, { headers: { 'Content-Type': 'application/pdf' } }));
+            }
+          } catch(e){}
+        }
+      }
+    } catch(e) {
+      console.warn("Réseau KO, fallback cache:", e.message);
+    }
+  }
+
+  // ─── 2. FALLBACK CACHE ───
+  if (!blobUrl && "caches" in window) {
     try {
       const cache = await caches.open("campus-pdf-v1");
-      const cachedResponse = await cache.match(cacheKey);
-      if (cachedResponse) {
-        const blob = await cachedResponse.blob();
+      const cached = await cache.match(cacheKey);
+      if (cached) {
+        const blob = await cached.blob();
         blobUrl = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
         isFromCache = true;
       }
-    } catch(e) { console.warn("Erreur lecture cache:", e); }
+    } catch(e) {}
   }
 
-  // 2. Si pas dans le cache, on le télécharge
-  if (!blobUrl) {
-    if(!api.token){ toast("Session expirée. Reconnectez-vous."); return; }
-    try {
-      toast("Téléchargement et mise en cache...");
-      const url = NETLIFY_URL + "/api/docs/" + encodeURIComponent(pdf.id) + "/file?token=" + encodeURIComponent(api.token);
-      const response = await fetch(url);
-      if (!response.ok) throw new Error("Erreur réseau");
-      const blob = await response.blob();
-      
-      const pdfBlob = new Blob([blob], { type: 'application/pdf' });
-      blobUrl = URL.createObjectURL(pdfBlob);
-
-      if ("caches" in window) {
-        const cache = await caches.open("campus-pdf-v1");
-        await cache.put(cacheKey, new Response(pdfBlob, { headers: { 'Content-Type': 'application/pdf' } }));
-      }
-    } catch(err) {
-      toast("Impossible de charger le document. Vérifiez votre connexion.");
-      return;
-    }
-  }
+  if (!blobUrl) { toast("Impossible de charger le document."); return; }
+  isFromCache = isFromCache || wasOffline;
 
   const existing = document.getElementById("pdfMobileViewer");
   if(existing) existing.remove();
 
   const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
-  if(isMobile){
-    try { history.pushState({ pdfViewer: true }, ""); } catch(e){}
+  // Desktop : ouverture native
+  if(!isMobile){
+    const overlay = document.createElement("div");
+    overlay.id = "pdfLoaderOverlay";
+    overlay.style.cssText = `position:fixed; inset:0; z-index:9999; background:rgba(11,21,36,.92); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; color:#E8ECF2; font-family:inherit;`;
+    overlay.innerHTML = `<div style="width:44px;height:44px;border:3px solid rgba(255,255,255,.15);border-top-color:#5B8DEF;border-radius:50%;animation:pdfSpin .8s linear infinite;"></div><div style="font-size:14px;font-weight:600;">Ouverture du document…</div>`;
+    document.body.appendChild(overlay);
+    window.open(blobUrl, "_blank");
+    setTimeout(() => { const el = document.getElementById("pdfLoaderOverlay"); if(el) el.remove(); }, 1500);
+    return;
+  }
 
-    const viewer = document.createElement("div");
-    viewer.id = "pdfMobileViewer";
-    viewer.innerHTML = `
-      <div class="pdf-viewer-header">
-        <span class="pdf-viewer-title">${esc(pdf.titre || "Document")} ${isFromCache ? "📥 (Hors-ligne)" : ""}</span>
+  // Mobile : viewer custom avec zoom
+  try { history.pushState({ pdfViewer: true }, ""); } catch(e){}
+
+  const viewer = document.createElement("div");
+  viewer.id = "pdfMobileViewer";
+  viewer.innerHTML = `
+    <div class="pdf-viewer-header">
+      <span class="pdf-viewer-title">${esc(pdf.titre || "Document")} ${isFromCache ? "📥 (Hors-ligne)" : ""}</span>
+      <div class="pdf-zoom-controls">
+        <button class="pdf-zoom-btn" id="pdfZoomOut" aria-label="Zoom arrière">−</button>
+        <button class="pdf-zoom-label" id="pdfZoomReset" aria-label="Réinitialiser le zoom">100%</button>
+        <button class="pdf-zoom-btn" id="pdfZoomIn" aria-label="Zoom avant">+</button>
         <button class="pdf-viewer-close" id="closePdfViewerBtn">Fermer</button>
       </div>
-      <div id="pdfCanvasContainer" class="pdf-canvas-container">
+    </div>
+    <div id="pdfCanvasContainer" class="pdf-canvas-container">
+      <div id="pdfCanvasInner" class="pdf-canvas-inner">
         <div class="pdf-loading">
           <div class="pdf-spinner"></div>
           <div style="margin-top:12px;font-size:14px;">Chargement du document…</div>
         </div>
       </div>
-    `;
-    document.body.appendChild(viewer);
-    document.body.classList.add("modal-open");
+    </div>
+  `;
+  document.body.appendChild(viewer);
+  document.body.classList.add("modal-open");
 
-    let closed = false;
-    let renderingTask = null;
-    let pdfDoc = null;
+  let closed = false;
+  let renderingTask = null;
+  let pdfDoc = null;
+  let renderedCanvases = [];
 
-    const closeViewer = (fromPopstate) => {
-      if(closed) return;
-      closed = true;
-      try { if(renderingTask && renderingTask.cancel) renderingTask.cancel(); } catch(e){}
-      try { if(pdfDoc) pdfDoc.destroy(); } catch(e){}
-      try { URL.revokeObjectURL(blobUrl); } catch(e){}
-      
-      const el = document.getElementById("pdfMobileViewer");
-      if(el) el.remove();
-      document.body.classList.remove("modal-open");
-      if(!fromPopstate){ try { history.back(); } catch(e){} }
-      setTimeout(() => { try { window.focus(); } catch(e){} }, 60);
-    };
+  // ── ZOOM ──
+  let zoom = 1;
+  const MIN_ZOOM = 0.5;
+  const MAX_ZOOM = 5;
+  let zoomRAF = null;
 
-    document.getElementById("closePdfViewerBtn").onclick = () => closeViewer(false);
+  const container = document.getElementById("pdfCanvasContainer");
+  const inner = document.getElementById("pdfCanvasInner");
 
-    const escHandler = (e) => {
-      if(e.key === "Escape"){ closeViewer(false); document.removeEventListener("keydown", escHandler); }
-    };
-    document.addEventListener("keydown", escHandler);
-
-    const popHandler = () => {
-      if(document.getElementById("pdfMobileViewer")){
-        closeViewer(true);
-        window.removeEventListener("popstate", popHandler);
-      }
-    };
-    window.addEventListener("popstate", popHandler);
-
-    (async () => {
-      const container = document.getElementById("pdfCanvasContainer");
-      try {
-        const pdfjsLib = await loadPdfJsLib();
-        const loadingTask = pdfjsLib.getDocument({
-          url: blobUrl,
-          withCredentials: false,
-          disableRange: true,
-          disableStream: true,
-          disableAutoFetch: true
-        });
-        pdfDoc = await loadingTask.promise;
-
-        container.innerHTML = "";
-        const totalPages = pdfDoc.numPages;
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
-        const maxWidth = Math.max(280, container.clientWidth - 20);
-
-        for (let pageNum = 1; pageNum <= totalPages; pageNum++){
-          if(closed) return;
-          const page = await pdfDoc.getPage(pageNum);
-          const baseViewport = page.getViewport({ scale: 1 });
-          const scale = maxWidth / baseViewport.width;
-          const viewport = page.getViewport({ scale });
-
-          const canvas = document.createElement("canvas");
-          canvas.className = "pdf-page-canvas";
-          canvas.width = Math.floor(viewport.width * dpr);
-          canvas.height = Math.floor(viewport.height * dpr);
-          canvas.style.width = Math.floor(viewport.width) + "px";
-          canvas.style.height = Math.floor(viewport.height) + "px";
-
-          const ctx = canvas.getContext("2d");
-          ctx.scale(dpr, dpr);
-
-          container.appendChild(canvas);
-
-          renderingTask = page.render({ canvasContext: ctx, viewport });
-          await renderingTask.promise;
-          renderingTask = null;
-        }
-        
-        markCachedPdfs();
-        
-      } catch(err){
-        if(closed) return;
-        console.warn("PDF.js a échoué (hors-ligne), affichage du lecteur natif :", err);
-        
-        // 🟢 MESSAGE PERSONNALISÉ POUR LE MODE HORS-LIGNE 🟢
-        container.innerHTML = `
-          <div style="padding:40px 20px;text-align:center;color:#93A3BD; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%;">
-            <div style="font-size:48px;margin-bottom:12px;">📥</div>
-            <p style="margin-bottom:20px;font-size:14px; color:#E8ECF2;">Document enregistré.<br>Disponible hors-ligne.</p>
-            <a href="${blobUrl}" target="_blank" rel="noopener" style="background:#3DDC97;color:#0B1524;padding:12px 20px;border-radius:8px;font-weight:600;text-decoration:none;font-size:14px; display:flex; align-items:center; gap:8px;">
-              👁️ Regarder hors ligne
-            </a>
-          </div>
-        `;
-      }
-    })();
-
-    return;
+  function applyZoom(){
+    for (const c of renderedCanvases) {
+      const bw = parseFloat(c.dataset.baseWidth || "0");
+      const bh = parseFloat(c.dataset.baseHeight || "0");
+      if (!bw || !bh) continue;
+      c.style.width  = Math.round(bw * zoom) + "px";
+      c.style.height = Math.round(bh * zoom) + "px";
+    }
+    const lbl = document.getElementById("pdfZoomReset");
+    if (lbl) lbl.textContent = Math.round(zoom * 100) + "%";
+  }
+  function setZoom(z){
+    const clamped = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z));
+    if (Math.abs(clamped - zoom) < 0.001) return;
+    zoom = clamped;
+    if (zoomRAF) return;
+    zoomRAF = requestAnimationFrame(() => { zoomRAF = null; applyZoom(); });
   }
 
-  // Mode PC (Desktop)
-  const overlay = document.createElement("div");
-  overlay.id = "pdfLoaderOverlay";
-  overlay.style.cssText = `position:fixed; inset:0; z-index:9999; background:rgba(11,21,36,.92); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; color:#E8ECF2; font-family:inherit;`;
-  overlay.innerHTML = `<div style="width:44px;height:44px;border:3px solid rgba(255,255,255,.15);border-top-color:#5B8DEF;border-radius:50%;animation:pdfSpin .8s linear infinite;"></div><div style="font-size:14px;font-weight:600;">Ouverture du document…</div>`;
-  document.body.appendChild(overlay);
-  window.open(blobUrl, "_blank");
-  setTimeout(() => { const el = document.getElementById("pdfLoaderOverlay"); if(el) el.remove(); }, 1500);
+  document.getElementById("pdfZoomIn").onclick  = () => setZoom(zoom * 1.25);
+  document.getElementById("pdfZoomOut").onclick = () => setZoom(zoom / 1.25);
+  document.getElementById("pdfZoomReset").onclick = () => setZoom(1);
+
+  let pinchStartDist = 0, pinchStartZoom = 1, lastTap = 0, wasPinching = false;
+
+  container.addEventListener("touchstart", (e) => {
+    if (e.touches.length === 2) {
+      wasPinching = true;
+      pinchStartDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      pinchStartZoom = zoom;
+    }
+  }, { passive: true });
+
+  container.addEventListener("touchmove", (e) => {
+    if (e.touches.length === 2 && pinchStartDist > 0) {
+      e.preventDefault();
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      setZoom(pinchStartZoom * (dist / pinchStartDist));
+    }
+  }, { passive: false });
+
+  container.addEventListener("touchend", (e) => {
+    if (e.touches.length < 2) pinchStartDist = 0;
+    if (!wasPinching && e.changedTouches.length === 1 && e.touches.length === 0) {
+      const now = Date.now();
+      if (now - lastTap < 300) { setZoom(zoom > 1.1 ? 1 : 2); lastTap = 0; }
+      else { lastTap = now; }
+    }
+    if (e.touches.length === 0) wasPinching = false;
+  });
+
+  container.addEventListener("wheel", (e) => {
+    if (e.ctrlKey || e.metaKey) { e.preventDefault(); setZoom(zoom * (e.deltaY < 0 ? 1.15 : 1/1.15)); }
+  }, { passive: false });
+
+  // ── FERMETURE ──
+  const closeViewer = (fromPopstate) => {
+    if(closed) return;
+    closed = true;
+    try { if(renderingTask && renderingTask.cancel) renderingTask.cancel(); } catch(e){}
+    try { if(pdfDoc) pdfDoc.destroy(); } catch(e){}
+    try { URL.revokeObjectURL(blobUrl); } catch(e){}
+    const el = document.getElementById("pdfMobileViewer");
+    if (el) el.remove();
+    document.body.classList.remove("modal-open");
+    if (!fromPopstate) { try { history.back(); } catch(e){} }
+    setTimeout(() => { try { window.focus(); } catch(e){} }, 60);
+  };
+
+  document.getElementById("closePdfViewerBtn").onclick = () => closeViewer(false);
+  document.addEventListener("keydown", function escH(e){
+    if (e.key === "Escape") { closeViewer(false); document.removeEventListener("keydown", escH); }
+  });
+  window.addEventListener("popstate", function popH(){
+    if (document.getElementById("pdfMobileViewer")) {
+      closeViewer(true); window.removeEventListener("popstate", popH);
+    }
+  });
+
+  // ── RENDU ──
+  (async () => {
+    try {
+      const pdfjsLib = await loadPdfJsLib();
+      const loadingTask = pdfjsLib.getDocument({
+        url: blobUrl, withCredentials: false,
+        disableRange: true, disableStream: true, disableAutoFetch: true
+      });
+      pdfDoc = await loadingTask.promise;
+
+      inner.innerHTML = "";
+      renderedCanvases = [];
+
+      const totalPages = pdfDoc.numPages;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const maxWidth = Math.max(280, container.clientWidth - 20);
+
+      for (let pageNum = 1; pageNum <= totalPages; pageNum++){
+        if (closed) return;
+        const page = await pdfDoc.getPage(pageNum);
+        const baseViewport = page.getViewport({ scale: 1 });
+        const scale = maxWidth / baseViewport.width;
+        const viewport = page.getViewport({ scale });
+
+        const bw = Math.floor(viewport.width);
+        const bh = Math.floor(viewport.height);
+
+        const canvas = document.createElement("canvas");
+        canvas.className = "pdf-page-canvas";
+        canvas.dataset.baseWidth = bw;
+        canvas.dataset.baseHeight = bh;
+        canvas.width  = Math.floor(bw * dpr);
+        canvas.height = Math.floor(bh * dpr);
+        canvas.style.width  = bw + "px";
+        canvas.style.height = bh + "px";
+
+        const ctx = canvas.getContext("2d");
+        ctx.scale(dpr, dpr);
+
+        inner.appendChild(canvas);
+        renderedCanvases.push(canvas);
+
+        renderingTask = page.render({ canvasContext: ctx, viewport });
+        await renderingTask.promise;
+        renderingTask = null;
+      }
+
+      applyZoom();
+      markCachedPdfs();
+    } catch(err){
+      if (closed) return;
+      console.warn("PDF.js a échoué, fallback :", err);
+      container.innerHTML = `
+        <div style="padding:40px 20px;text-align:center;color:#93A3BD; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%;">
+          <div style="font-size:48px;margin-bottom:12px;">📥</div>
+          <p style="margin-bottom:20px;font-size:14px; color:#E8ECF2;">Document enregistré.<br>Disponible hors-ligne.</p>
+          <a href="${blobUrl}" target="_blank" rel="noopener" style="background:#3DDC97;color:#0B1524;padding:12px 20px;border-radius:8px;font-weight:600;text-decoration:none;font-size:14px; display:flex; align-items:center; gap:8px;">
+            👁️ Regarder hors ligne
+          </a>
+        </div>
+      `;
+    }
+  })();
 }
 
+/* ================= PRELOAD RÉCENT (route-based, sans tri) ================= */
 function preloadRecentPdfs(){
   if(!api.token) return;
   document.querySelectorAll('link[rel="prefetch"][data-inptic-pdf]').forEach(l => l.remove());
-  const all = state.schedulePdfs
-    .concat(state.notesPdfs, state.resultatPdfs, state.rattrapagePdfs, state.communiquesPdfs)
-    .sort((a,b) => b.dateAjout.localeCompare(a.dateAjout))
-    .slice(0, 3);
-  all.forEach(pdf => {
+  const route = currentRoute();
+  let list;
+  if (route === "emploi") list = state.schedulePdfs;
+  else if (route === "notes") list = state.notesPdfs;
+  else if (route === "resultats") list = state.resultatPdfs;
+  else if (route === "rattrapage") list = state.rattrapagePdfs;
+  else if (route === "communiques") list = state.communiquesPdfs;
+  else return;
+  list.slice(0, 3).forEach(pdf => {
     const url = NETLIFY_URL + "/api/docs/" + encodeURIComponent(pdf.id) + "/file?token=" + encodeURIComponent(api.token);
     if(document.querySelector('link[href="' + url + '"]')) return;
     const link = document.createElement("link");
@@ -1551,26 +1680,28 @@ function preloadRecentPdfs(){
   });
 }
 
+/* ================= BADGE "📥" (1 seul cache.keys au lieu de 500 match) ================= */
 async function markCachedPdfs(){
   if(!("caches" in window) || !api.token) return;
   try {
     const cache = await caches.open("campus-pdf-v1");
-    const all = state.schedulePdfs
-      .concat(state.notesPdfs, state.resultatPdfs, state.rattrapagePdfs, state.communiquesPdfs);
-    for(const pdf of all){
-      const hit = await cache.match("/pdf-cache/" + pdf.id);
-      if(hit){
-        const btn = document.querySelector(`[data-action="open-pdf"][data-id="${pdf.id}"]`);
-        if(btn && !btn.querySelector(".pdf-offline-badge")){
-          const badge = document.createElement("span");
-          badge.className = "pdf-offline-badge";
-          badge.textContent = "📥";
-          badge.title = "Disponible hors ligne";
-          badge.style.cssText = "margin-left:4px;font-size:11px;opacity:.75;";
-          btn.appendChild(badge);
-        }
-      }
+    const keys = await cache.keys();
+    if (!keys.length) return;
+    const cachedIds = new Set();
+    for (const k of keys) {
+      const m = k.url.match(/\/pdf-cache\/([^/]+)$/);
+      if (m) cachedIds.add(m[1]);
     }
+    document.querySelectorAll('[data-action="open-pdf"][data-id]').forEach(btn => {
+      if (cachedIds.has(btn.dataset.id) && !btn.querySelector(".pdf-offline-badge")) {
+        const badge = document.createElement("span");
+        badge.className = "pdf-offline-badge";
+        badge.textContent = "📥";
+        badge.title = "Disponible hors ligne";
+        badge.style.cssText = "margin-left:4px;font-size:11px;opacity:.75;";
+        btn.appendChild(badge);
+      }
+    });
   } catch(e){}
 }
 
@@ -2457,9 +2588,10 @@ const notif = {
       };
     });
   },
-  detectNewDocs(previousDocs){
-    if(!previousDocs) return;
-    const prevIds = new Set(previousDocs.map(d => d.id));
+  detectNewDocs(previousIds){
+    if(!Array.isArray(previousIds)) return;
+    const ids = previousIds.map(x => typeof x === "string" ? x : x.id);
+    const prevIds = new Set(ids);
     const fresh = state.schedulePdfs
       .concat(state.notesPdfs, state.resultatPdfs, state.rattrapagePdfs, state.communiquesPdfs)
       .filter(d => !prevIds.has(d.id));
@@ -2491,9 +2623,10 @@ function fmtRelativeTime(iso){
 
 function saveDocsSnapshot(){
   try{
-    const all = state.schedulePdfs.concat(state.notesPdfs, state.resultatPdfs, state.rattrapagePdfs, state.communiquesPdfs)
-      .map(d => ({ id: d.id, kind: d.kind, titre: d.titre, filiere: d.filiere, niveau: d.niveau }));
-    localStorage.setItem("inptic.docsSnapshot", JSON.stringify(all));
+    const ids = state.schedulePdfs
+      .concat(state.notesPdfs, state.resultatPdfs, state.rattrapagePdfs, state.communiquesPdfs)
+      .map(d => d.id);
+    localStorage.setItem("inptic.docsSnapshot", JSON.stringify(ids));
   }catch(e){}
 }
 function loadDocsSnapshot(){

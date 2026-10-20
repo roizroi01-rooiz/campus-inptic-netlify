@@ -1,11 +1,11 @@
 /* =============================================================================
    SERVICE WORKER — INPTIC Campus
-   Version v15 : cache PDF hors-ligne + fallback "Regarder hors ligne"
+   Version v16 : PDF réseau-first (vérifie à chaque ouverture) + cache fallback
    ============================================================================= */
-const VERSION = "campus-inptic-v15"; // ⚠️ Changé de v14 à v15
+const VERSION = "campus-inptic-v16";
 const STATIC_CACHE = VERSION + "-static";
 const FONT_CACHE = VERSION + "-fonts";
-const PDF_CACHE = "campus-pdf-v1"; // On garde le même nom pour ne pas perdre les PDF déjà téléchargés
+const PDF_CACHE = "campus-pdf-v1";
 const BADGE_CACHE = "badge-counter";
 
 const ASSETS = [
@@ -90,7 +90,7 @@ self.addEventListener("fetch", (event) => {
   /* 2. Autres origines : ne pas intercepter */
   if (url.origin !== self.location.origin) return;
 
-  /* 3. ⭐ PDF : cache-first par ID de document */
+  /* 3. ⭐ PDF : réseau d'abord, cache en secours. */
   if (url.pathname.startsWith("/api/docs/") && url.pathname.endsWith("/file")) {
     const match = url.pathname.match(/^\/api\/docs\/([^/]+)\/file$/);
     if (match) {
@@ -98,16 +98,29 @@ self.addEventListener("fetch", (event) => {
       const cacheKey = "/pdf-cache/" + docId;
       event.respondWith((async () => {
         const cache = await caches.open(PDF_CACHE);
-        const cached = await cache.match(cacheKey);
-        if (cached) return cached;
         try {
           const res = await fetch(req);
           if (res && res.status === 200) {
             try { cache.put(cacheKey, res.clone()); } catch(e){}
+            return res;
+          }
+          if (res.status === 304) {
+            const cached = await cache.match(cacheKey);
+            if (cached) return cached;
+            return res;
+          }
+          if (res.status === 404) {
+            const cached = await cache.match(cacheKey);
+            if (cached) return cached;
+            return res;
           }
           return res;
         } catch (e) {
-          return new Response("Document non disponible hors ligne.", { status: 503, headers: {"Content-Type":"text/plain"} });
+          const cached = await cache.match(cacheKey);
+          if (cached) return cached;
+          return new Response("Document non disponible hors ligne.", {
+            status: 503, headers: { "Content-Type": "text/plain" }
+          });
         }
       })());
       return;
@@ -215,12 +228,10 @@ self.addEventListener("message", (event) => {
   }
   if (data.type === "skip-waiting") { self.skipWaiting(); }
 
-  /* ✅ Vider tout le cache PDF (au logout) */
   if (data.type === "clear-pdf-cache") {
     event.waitUntil(caches.delete(PDF_CACHE));
   }
 
-  /* ✅ Vérifier si un PDF est en cache */
   if (data.type === "check-pdf-cached" && data.docId && event.ports && event.ports[0]) {
     event.waitUntil((async () => {
       const cache = await caches.open(PDF_CACHE);
