@@ -33,7 +33,7 @@
     --teal:#3DDC97; --teal-dim:#1E4A3A;
     --gold:#F2B84B; --gold-dim:#4A3B1E;
     --blue:#5B8DEF; --blue-dim:#1E2E4E; --red:#E8637C;
-    --purple:#A78BFA; --purple-dim:#2D2544; /* Couleur pour MTIC */
+    --purple:#A78BFA; --purple-dim:#2D2544;
     --font-display:'Fraunces', Georgia, 'Times New Roman', serif;
     --font-body:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     --sidebar-w:250px;
@@ -723,14 +723,8 @@
 (function(){
 "use strict";
 
-/* =========================================================================
-   CONFIGURATION NETLIFY (URL ABSOLUE POUR L'APPLICATION MOBILE)
-   ========================================================================= */
 const NETLIFY_URL = "https://inpticc.netlify.app";
 
-/* =========================================================================
-   ANTI PULL-TO-REFRESH / ANTI OVERSCOLL
-   ========================================================================= */
 let _touchStartY = 0;
 window.addEventListener('touchstart', (e) => {
   _touchStartY = e.touches[0].clientY;
@@ -745,9 +739,6 @@ window.addEventListener('touchmove', (e) => {
   }
 }, { passive: false });
 
-/* =========================================================================
-   INDEXEDDB — Cache local persistant
-   ========================================================================= */
 const DB_NAME = "inptic-offline";
 const DB_VERSION = 1;
 const DB_STORE = "cache";
@@ -775,7 +766,7 @@ async function dbSet(key, value){
       tx.oncomplete = () => resolve(true);
       tx.onerror = () => reject(tx.error);
     });
-  }catch(e){ console.warn("dbSet error:", e); return false; }
+  }catch(e){ return false; }
 }
 
 async function dbGet(key){
@@ -787,7 +778,7 @@ async function dbGet(key){
       req.onsuccess = () => resolve(req.result ? req.result.value : null);
       req.onerror = () => reject(req.error);
     });
-  }catch(e){ console.warn("dbGet error:", e); return null; }
+  }catch(e){ return null; }
 }
 
 async function dbClear(){
@@ -802,42 +793,18 @@ async function dbClear(){
   }catch(e){ return false; }
 }
 
-/* =========================================================================
-   BANNIÈRE HORS-LIGNE
-   ========================================================================= */
-function showOfflineBanner(){
-  const b = document.getElementById("offlineBanner");
-  if(b) b.classList.add("show");
-}
-function hideOfflineBanner(){
-  const b = document.getElementById("offlineBanner");
-  if(b) b.classList.remove("show");
-}
-function updateOfflineState(){
-  if(navigator.onLine) hideOfflineBanner();
-  else showOfflineBanner();
-}
+function showOfflineBanner(){ const b = document.getElementById("offlineBanner"); if(b) b.classList.add("show"); }
+function hideOfflineBanner(){ const b = document.getElementById("offlineBanner"); if(b) b.classList.remove("show"); }
+function updateOfflineState(){ if(navigator.onLine) hideOfflineBanner(); else showOfflineBanner(); }
 
-/* =========================================================================
-   HELPERS LOCALSTORAGE
-   ========================================================================= */
 const LS_USER  = "inptic.cached-user";
 const LS_DATA  = "inptic.cached-data";
 const LS_YEARS = "inptic.cached-years";
 
 function lsSet(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){} }
 function lsGet(key){ try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; }catch(e){ return null; } }
-function lsClear(){
-  try{
-    localStorage.removeItem(LS_USER);
-    localStorage.removeItem(LS_DATA);
-    localStorage.removeItem(LS_YEARS);
-  }catch(e){}
-}
+function lsClear(){ try{ localStorage.removeItem(LS_USER); localStorage.removeItem(LS_DATA); localStorage.removeItem(LS_YEARS); }catch(e){} }
 
-/* =========================================================================
-   API + ÉTAT
-   ========================================================================= */
 const TOKEN_KEY = "inptic.token";
 const MAX_PDF_BYTES = 5 * 1024 * 1024;
 
@@ -864,7 +831,7 @@ const api = {
     try{
       r = await fetch(NETLIFY_URL + "/api" + path, {method, headers, body, cache: "no-store"});
     }catch(e){
-      const err = new Error("Connexion impossible. Vérifiez votre accès Internet.");
+      const err = new Error("Connexion impossible.");
       err.offline = true;
       throw err;
     }
@@ -877,46 +844,19 @@ const api = {
     }
     return r;
   },
-  async call(method, path, opts){
-    const r = await this.raw(method, path, opts);
-    return r.json();
-  },
-  async login(email, password){
-    const j = await this.call("POST", "/login", {json: {email, password}});
-    this.setToken(j.token);
-    return j.user;
-  },
-  async signup(data){
-    const j = await this.call("POST", "/signup", {json: data});
-    this.setToken(j.token);
-    return j.user;
-  },
-  async fileBlob(id){
-    const r = await this.raw("GET", "/docs/" + id + "/file");
-    return r.blob();
-  }
+  async call(method, path, opts){ const r = await this.raw(method, path, opts); return r.json(); },
+  async login(email, password){ const j = await this.call("POST", "/login", {json: {email, password}}); this.setToken(j.token); return j.user; },
+  async signup(data){ const j = await this.call("POST", "/signup", {json: data}); this.setToken(j.token); return j.user; }
 };
 
 const ROLE_LABEL = {admin:"Admin", etudiant:"Étudiant", enseignant:"Enseignant"};
-const FILIERES = ["GI","RT","MTIC"]; // ← 3ème filière ajoutée
+const FILIERES = ["GI","RT","MTIC"];
 const NIVEAUX = ["L1","L2","L3"];
-const FILIERE_LABEL = {
-  GI: "Génie Informatique",
-  RT: "Réseaux &amp; Télécommunications",
-  MTIC: "Management &amp; TIC" // ← Label ajouté
-};
-
-const ANNEES_UNIV = [
-  "2026-2027","2027-2028","2028-2029","2029-2030","2030-2031","2031-2032",
-  "2032-2033","2033-2034","2034-2035","2035-2036","2036-2037","2037-2038",
-  "2038-2039","2039-2040","2040-2041","2041-2042","2042-2043","2043-2044",
-  "2044-2045","2045-2046","2046-2047","2047-2048","2048-2049","2049-2050"
-];
+const FILIERE_LABEL = { GI: "Génie Informatique", RT: "Réseaux &amp; Télécommunications", MTIC: "Management &amp; TIC" };
+const ANNEES_UNIV = ["2026-2027","2027-2028","2028-2029","2029-2030","2030-2031","2031-2032","2032-2033","2033-2034","2034-2035","2035-2036","2036-2037","2037-2038","2038-2039","2039-2040","2040-2041","2041-2042","2042-2043","2043-2044","2044-2045","2045-2046","2046-2047","2047-2048","2048-2049","2049-2050"];
 const ANNEE_DEFAUT = "2026-2027";
 
-function seedState(){
-  return { students: [], schedulePdfs: [], notesPdfs: [], resultatPdfs: [], rattrapagePdfs: [], communiquesPdfs: [] };
-}
+function seedState(){ return { students: [], schedulePdfs: [], notesPdfs: [], resultatPdfs: [], rattrapagePdfs: [], communiquesPdfs: [] }; }
 let state = seedState();
 let lockedYears = [];
 
@@ -941,35 +881,23 @@ async function loadLockedYears(){
   }catch(e){ lockedYears = []; }
 }
 
-/* =========================================================================
-   CHARGEMENT RÉSEAU + CACHE
-   ========================================================================= */
 async function fetchAndCache(){
-  const [meRes, dataRes] = await Promise.all([
-    api.call("GET", "/me"),
-    api.call("GET", "/data")
-  ]);
-
+  const [meRes, dataRes] = await Promise.all([ api.call("GET", "/me"), api.call("GET", "/data") ]);
   currentUser = meRes.user;
   await dbSet("user", currentUser);
   lsSet(LS_USER, currentUser);
-
   applyData(dataRes);
   await dbSet("data", dataRes);
   lsSet(LS_DATA, dataRes);
-
   await loadLockedYears();
   await dbSet("lockedYears", lockedYears);
   lsSet(LS_YEARS, lockedYears);
-
   const snapshot = loadDocsSnapshot();
   if(snapshot && currentUser){ notif.detectNewDocs(snapshot); }
   saveDocsSnapshot();
 }
 
-async function loadRemote(){
-  await fetchAndCache();
-}
+async function loadRemote(){ await fetchAndCache(); }
 
 async function bootAfterAuth(){
   const j = await api.call("GET", "/me");
@@ -979,9 +907,6 @@ async function bootAfterAuth(){
   syncFiltersForStudent();
 }
 
-/* =========================================================================
-   SYNCHRO ARRIÈRE-PLAN
-   ========================================================================= */
 let _syncing = false;
 async function syncInBackground(){
   if(_syncing) return;
@@ -992,15 +917,9 @@ async function syncInBackground(){
     hideOfflineBanner();
     if(currentUser) renderRoute();
   }catch(err){
-    if(err && err.expired){
-      hideOfflineBanner();
-      handleSessionExpired();
-    }else{
-      updateOfflineState();
-    }
-  }finally{
-    _syncing = false;
-  }
+    if(err && err.expired){ hideOfflineBanner(); handleSessionExpired(); }
+    else{ updateOfflineState(); }
+  }finally{ _syncing = false; }
 }
 
 function handleSessionExpired(){
@@ -1013,9 +932,6 @@ function handleSessionExpired(){
   renderAuthScreen();
 }
 
-/* =========================================================================
-   AUTH
-   ========================================================================= */
 let currentUser = null;
 let authMode = "login";
 let authSuccessMsg = "";
@@ -1102,11 +1018,8 @@ function renderAuthScreen(){
         showApp();
       }catch(err){
         btn.disabled = false; btn.textContent = "Se connecter";
-        if(err && err.offline){
-          setAuthError("Pas de connexion Internet. Connectez-vous une première fois pour activer le mode hors-ligne.");
-        }else{
-          setAuthError(err.message || "Connexion impossible.");
-        }
+        if(err && err.offline){ setAuthError("Pas de connexion Internet."); }
+        else{ setAuthError(err.message || "Connexion impossible."); }
       }
     };
     document.getElementById("btnLogin").onclick = doLogin;
@@ -1126,10 +1039,7 @@ function renderAuthScreen(){
       if(!nom || !prenom || !email){ setAuthError("Merci de remplir tous les champs."); return; }
       if(pass.length < 6){ setAuthError("Le mot de passe doit contenir au moins 6 caractères."); return; }
       if(pass !== pass2){ setAuthError("Les mots de passe ne correspondent pas."); return; }
-      if(lockedYears.includes(annee)){
-        setAuthError(`L'année universitaire ${annee} est verrouillée. Contactez l'administrateur.`);
-        return;
-      }
+      if(lockedYears.includes(annee)){ setAuthError(`L'année ${annee} est verrouillée.`); return; }
 
       btn.disabled = true; const label = btn.textContent; btn.textContent = "Création…";
       try{
@@ -1174,18 +1084,10 @@ function syncFiltersForStudent(){
     const student = state.students.find(s => s.id === currentUser.id);
     if(student){
       const annee = student.annee || ANNEE_DEFAUT;
-      uiState.emploi.filiere = student.filiere;
-      uiState.emploi.niveau = student.niveau;
-      uiState.emploi.annee = annee;
-      uiState.notes.filiere = student.filiere;
-      uiState.notes.niveau = student.niveau;
-      uiState.notes.annee = annee;
-      uiState.resultats.filiere = student.filiere;
-      uiState.resultats.niveau = student.niveau;
-      uiState.resultats.annee = annee;
-      uiState.rattrapage.filiere = student.filiere;
-      uiState.rattrapage.niveau = student.niveau;
-      uiState.rattrapage.annee = annee;
+      uiState.emploi.filiere = student.filiere; uiState.emploi.niveau = student.niveau; uiState.emploi.annee = annee;
+      uiState.notes.filiere = student.filiere; uiState.notes.niveau = student.niveau; uiState.notes.annee = annee;
+      uiState.resultats.filiere = student.filiere; uiState.resultats.niveau = student.niveau; uiState.resultats.annee = annee;
+      uiState.rattrapage.filiere = student.filiere; uiState.rattrapage.niveau = student.niveau; uiState.rattrapage.annee = annee;
     }
   }
 }
@@ -1205,50 +1107,54 @@ function showApp(){
 
 function hideBootScreen(){
   const b = document.getElementById("bootScreen");
-  if(b){
-    b.classList.add("hide");
-    setTimeout(() => { try{ b.remove(); }catch(e){} }, 400);
-  }
+  if(b){ b.classList.add("hide"); setTimeout(() => { try{ b.remove(); }catch(e){} }, 400); }
 }
 
 async function logout(){
-  api.setToken(null);
-  currentUser = null;
-  state = seedState();
-  authMode = "login";
-  authSuccessMsg = "";
-
-  try{
-    await dbClear();
-    lsClear();
-  }catch(e){}
-
+  api.setToken(null); currentUser = null; state = seedState(); authMode = "login"; authSuccessMsg = "";
+  try{ await dbClear(); lsClear(); }catch(e){}
   location.hash = "";
   renderAuthScreen();
 }
 
-function esc(str){
-  return String(str==null?"":str).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-}
+function esc(str){ return String(str==null?"":str).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function isAdmin(){ return !!(currentUser && currentUser.role === "admin"); }
-function fmtSize(bytes){
-  if(bytes < 1024) return bytes + " o";
-  if(bytes < 1024*1024) return (bytes/1024).toFixed(0) + " Ko";
-  return (bytes/(1024*1024)).toFixed(1) + " Mo";
-}
-function fmtDate(iso){
-  const d = new Date(iso);
-  return d.toLocaleDateString("fr-FR", {day:"2-digit", month:"2-digit", year:"numeric"});
-}
+function fmtSize(bytes){ if(bytes < 1024) return bytes + " o"; if(bytes < 1024*1024) return (bytes/1024).toFixed(0) + " Ko"; return (bytes/(1024*1024)).toFixed(1) + " Mo"; }
+function fmtDate(iso){ const d = new Date(iso); return d.toLocaleDateString("fr-FR", {day:"2-digit", month:"2-digit", year:"numeric"}); }
 function toast(msg){
   const el = document.getElementById("toast");
-  el.textContent = msg;
-  el.classList.add("show");
-  clearTimeout(toast._t);
-  toast._t = setTimeout(()=> el.classList.remove("show"), 2200);
+  el.textContent = msg; el.classList.add("show");
+  clearTimeout(toast._t); toast._t = setTimeout(()=> el.classList.remove("show"), 2200);
 }
 
-/* ================= TÉLÉCHARGEMENT (action explicite utilisateur) ================= */
+/* ================= SYSTÈME ULTRA SIMPLE POUR VOIR LES PDF ================= */
+async function openRemotePdf(pdf){
+  const wasOffline = !navigator.onLine;
+  const cacheKey = "/pdf-cache/" + pdf.id;
+
+  // 1. EN LIGNE : on ouvre le lien direct dans un nouvel onglet (PC, Android, iOS)
+  if (!wasOffline) {
+    const url = NETLIFY_URL + "/api/docs/" + encodeURIComponent(pdf.id) + "/file?token=" + encodeURIComponent(api.token);
+    window.open(url, "_blank");
+    return;
+  }
+
+  // 2. HORS-LIGNE : on lit le fichier dans le cache du téléphone et on l'ouvre
+  try {
+    const cache = await caches.open("campus-pdf-v1");
+    const cached = await cache.match(cacheKey);
+    if (cached) {
+      const blob = await cached.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, "_blank");
+    } else {
+      toast("Document non disponible hors-ligne.");
+    }
+  } catch(e) {
+    toast("Erreur d'ouverture.");
+  }
+}
+
 async function downloadRemotePdf(pdf){
   if(!api.token){ toast("Session expirée. Reconnectez-vous."); return; }
   const url = NETLIFY_URL + "/api/docs/" + encodeURIComponent(pdf.id) + "/file?token=" + encodeURIComponent(api.token);
@@ -1273,7 +1179,6 @@ async function downloadRemotePdf(pdf){
     toast("✅ PDF téléchargé et conservé hors-ligne");
     markCachedPdfs();
   } catch(err) {
-    console.error("Erreur de téléchargement:", err);
     toast("Téléchargement via le navigateur…");
     const fallbackUrl = url + "&dl=1";
     const a = document.createElement("a");
@@ -1286,101 +1191,6 @@ async function downloadRemotePdf(pdf){
   }
 }
 
-/* ================= OUVERTURE RAPIDE ET UNIVERSELLE (iOS / Android / PC) ================= */
-async function openRemotePdf(pdf){
-  const wasOffline = !navigator.onLine;
-  const cacheKey = "/pdf-cache/" + pdf.id;
-  let finalUrl = null;
-
-  if (!wasOffline) {
-    // EN LIGNE : On donne directement le lien Netlify (ultra rapide).
-    // Le téléphone ouvre son lecteur natif sans télécharger le fichier dans l'app.
-    finalUrl = NETLIFY_URL + "/api/docs/" + encodeURIComponent(pdf.id) + "/file?token=" + encodeURIComponent(api.token);
-    
-    // En arrière-plan, on met en cache pour plus tard (hors-ligne)
-    fetch(finalUrl)
-      .then(r => r.blob())
-      .then(blob => {
-        caches.open("campus-pdf-v1").then(c => c.put(cacheKey, new Response(blob, { headers: { 'Content-Type': 'application/pdf' } })));
-      }).catch(()=>{});
-  } else {
-    // HORS-LIGNE : On utilise le Base64 (Data URI) pour forcer iOS à l'ouvrir.
-    try {
-      const cache = await caches.open("campus-pdf-v1");
-      const cached = await cache.match(cacheKey);
-      if (cached) {
-        const blob = await cached.blob();
-        finalUrl = await new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result);
-          reader.readAsDataURL(blob);
-        });
-      }
-    } catch(e) {}
-  }
-
-  if (!finalUrl) { 
-    toast("Document introuvable."); 
-    return; 
-  }
-
-  const existing = document.getElementById("pdfMobileViewer");
-  if(existing) existing.remove();
-
-  try { history.pushState({ pdfViewer: true }, ""); } catch(e){}
-
-  const viewer = document.createElement("div");
-  viewer.id = "pdfMobileViewer";
-  viewer.innerHTML = `
-    <div class="pdf-viewer-header">
-      <span class="pdf-viewer-title">${esc(pdf.titre || "Document")}</span>
-      <div class="pdf-zoom-controls">
-        <button class="pdf-viewer-close" id="closePdfViewerBtn">Fermer</button>
-      </div>
-    </div>
-    <div class="pdf-canvas-container" style="display:flex; flex-direction:column; align-items:center; justify-content:center; background:#525659;">
-      <div style="padding:40px 20px;text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-        <div style="font-size:48px;margin-bottom:12px;">${wasOffline ? "📥" : "📄"}</div>
-        <p style="margin-bottom:20px;font-size:14px; color:#E8ECF2;">
-          ${wasOffline ? "Document enregistré.<br>Disponible hors-ligne." : "Document prêt.<br>Disponible en ligne."}
-        </p>
-        <button id="btnOpenNativePdf" style="background:#3DDC97;color:#0B1524;padding:12px 20px;border-radius:8px;font-weight:600;text-decoration:none;font-size:14px; display:flex; align-items:center; gap:8px; border:none; cursor:pointer;">
-          👁️ ${wasOffline ? "Regarder hors ligne" : "Regarder en ligne"}
-        </button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(viewer);
-  document.body.classList.add("modal-open");
-
-  let closed = false;
-
-  document.getElementById("btnOpenNativePdf").onclick = () => {
-    // Ouvre le document (lien direct ou Base64) avec le lecteur du téléphone
-    window.open(finalUrl, '_blank') || (window.location.href = finalUrl);
-  };
-
-  const closeViewer = (fromPopstate) => {
-    if(closed) return;
-    closed = true;
-    const el = document.getElementById("pdfMobileViewer");
-    if (el) el.remove();
-    document.body.classList.remove("modal-open");
-    if (!fromPopstate) { try { history.back(); } catch(e){} }
-  };
-
-  document.getElementById("closePdfViewerBtn").onclick = () => closeViewer(false);
-  window.addEventListener("popstate", function popH(){
-    if (document.getElementById("pdfMobileViewer")) {
-      closeViewer(true); 
-      window.removeEventListener("popstate", popH);
-    }
-  });
-
-  if (!wasOffline) markCachedPdfs();
-}
-
-/* ================= PRELOAD RÉCENT (route-based, sans tri) ================= */
 function preloadRecentPdfs(){
   if(!api.token) return;
   document.querySelectorAll('link[rel="prefetch"][data-inptic-pdf]').forEach(l => l.remove());
@@ -1396,16 +1206,12 @@ function preloadRecentPdfs(){
     const url = NETLIFY_URL + "/api/docs/" + encodeURIComponent(pdf.id) + "/file?token=" + encodeURIComponent(api.token);
     if(document.querySelector('link[href="' + url + '"]')) return;
     const link = document.createElement("link");
-    link.rel = "prefetch";
-    link.href = url;
-    link.as = "document";
-    link.crossOrigin = "anonymous";
-    link.dataset.inpticPdf = "1";
+    link.rel = "prefetch"; link.href = url; link.as = "document";
+    link.crossOrigin = "anonymous"; link.dataset.inpticPdf = "1";
     document.head.appendChild(link);
   });
 }
 
-/* ================= BADGE "📥" ================= */
 async function markCachedPdfs(){
   if(!("caches" in window) || !api.token) return;
   try {
@@ -1420,9 +1226,7 @@ async function markCachedPdfs(){
     document.querySelectorAll('[data-action="open-pdf"][data-id]').forEach(btn => {
       if (cachedIds.has(btn.dataset.id) && !btn.querySelector(".pdf-offline-badge")) {
         const badge = document.createElement("span");
-        badge.className = "pdf-offline-badge";
-        badge.textContent = "📥";
-        badge.title = "Disponible hors ligne";
+        badge.className = "pdf-offline-badge"; badge.textContent = "📥"; badge.title = "Disponible hors ligne";
         badge.style.cssText = "margin-left:4px;font-size:11px;opacity:.75;";
         btn.appendChild(badge);
       }
@@ -1479,25 +1283,13 @@ function studentModal(existing){
       const prenom = root.querySelector("#f_prenom").value.trim();
       if(!nom || !prenom){ toast("Le nom et le prénom sont requis"); return; }
       const email = root.querySelector("#f_email").value.trim().toLowerCase();
-      const row = {
-        matricule: root.querySelector("#f_matricule").value.trim(),
-        nom, prenom,
-        filiere: root.querySelector("#f_filiere").value,
-        niveau: root.querySelector("#f_niveau").value,
-        email, tel: root.querySelector("#f_tel").value.trim()
-      };
-      const btn = root.querySelector("#f_save");
-      btn.disabled = true;
+      const row = { matricule: root.querySelector("#f_matricule").value.trim(), nom, prenom, filiere: root.querySelector("#f_filiere").value, niveau: root.querySelector("#f_niveau").value, email, tel: root.querySelector("#f_tel").value.trim() };
+      const btn = root.querySelector("#f_save"); btn.disabled = true;
       try{
         if(isEdit) await api.call("PATCH", "/students/" + s.id, {json: row});
         else await api.call("POST", "/students", {json: row});
-        await loadRemote();
-        closeModal(); renderRoute();
-        toast(isEdit?"Étudiant mis à jour":"Étudiant ajouté");
-      }catch(err){
-        btn.disabled = false;
-        toast(err.message || "Échec de l'enregistrement");
-      }
+        await loadRemote(); closeModal(); renderRoute(); toast(isEdit?"Étudiant mis à jour":"Étudiant ajouté");
+      }catch(err){ btn.disabled = false; toast(err.message || "Échec de l'enregistrement"); }
     };
   });
 }
@@ -1511,9 +1303,7 @@ function pdfUploadModal(kind, filiere, niveau, annee){
   else if (kind === "communiques") cfg = {title:"Ajouter un communiqué", placeholder:"ex. Réunion de rentrée 2026", doneMsg:"Communiqué publié"};
   else cfg = {title:"Ajouter l'emploi du temps", placeholder:"ex. Emploi du temps — Semestre 1", doneMsg:"Emploi du temps ajouté"};
 
-  const subTitle = kind === "communiques"
-    ? `<p class="modal-sub"> Visible par <strong>tous les étudiants</strong> (toutes filières, tous niveaux)</p>`
-    : `<p class="modal-sub">${FILIERE_LABEL[filiere]} · ${niveau} · ${annee}</p>`;
+  const subTitle = kind === "communiques" ? `<p class="modal-sub"> Visible par <strong>tous les étudiants</strong></p>` : `<p class="modal-sub">${FILIERE_LABEL[filiere]} · ${niveau} · ${annee}</p>`;
 
   openModal(`
     <h3>${cfg.title}</h3>
@@ -1541,26 +1331,16 @@ function pdfUploadModal(kind, filiere, niveau, annee){
       if(file.size > MAX_BYTES){ toast("Fichier trop volumineux (max 5 Mo)"); return; }
       const titre = root.querySelector("#f_titre").value.trim() || file.name.replace(/\.pdf$/i, "");
       const commentaire = root.querySelector("#f_commentaire").value.trim();
-      const saveBtn = root.querySelector("#f_save");
-      saveBtn.disabled = true;
+      const saveBtn = root.querySelector("#f_save"); saveBtn.disabled = true;
       (async () => {
         try{
           const formData = new FormData();
-          formData.append("file", file);
-          formData.append("kind", kind);
-          formData.append("filiere", filiere);
-          formData.append("niveau", niveau);
-          formData.append("annee", annee || ANNEE_DEFAUT);
-          formData.append("titre", titre);
-          formData.append("nom", file.name);
-          formData.append("commentaire", commentaire);
+          formData.append("file", file); formData.append("kind", kind); formData.append("filiere", filiere);
+          formData.append("niveau", niveau); formData.append("annee", annee || ANNEE_DEFAUT);
+          formData.append("titre", titre); formData.append("nom", file.name); formData.append("commentaire", commentaire);
           await api.call("POST", "/docs", { body: formData });
-          await loadRemote();
-          closeModal(); renderRoute(); toast(cfg.doneMsg);
-        }catch(err){
-          saveBtn.disabled = false;
-          toast(err.message || "Échec de l'envoi du fichier");
-        }
+          await loadRemote(); closeModal(); renderRoute(); toast(cfg.doneMsg);
+        }catch(err){ saveBtn.disabled = false; toast(err.message || "Échec de l'envoi du fichier"); }
       })();
     };
   });
@@ -1597,17 +1377,10 @@ function purgeYearModal(annee) {
       btn.disabled = true; btn.textContent = "Suppression en cours…";
       try {
         await api.call("DELETE", "/admin/purge-year/" + annee);
-        closeModal();
-        await loadRemote();
-        await loadLockedYears();
-        await dbSet("lockedYears", lockedYears);
-        lsSet(LS_YEARS, lockedYears);
-        renderRoute();
-        toast(`✅ Données de ${annee} supprimées. Année verrouillée.`);
-      } catch(err) {
-        btn.disabled = false; btn.textContent = "Supprimer et verrouiller";
-        toast(err.message || "Erreur lors de la suppression de l'année");
-      }
+        closeModal(); await loadRemote(); await loadLockedYears();
+        await dbSet("lockedYears", lockedYears); lsSet(LS_YEARS, lockedYears);
+        renderRoute(); toast(`✅ Données de ${annee} supprimées. Année verrouillée.`);
+      } catch(err) { btn.disabled = false; btn.textContent = "Supprimer et verrouiller"; toast(err.message || "Erreur"); }
     };
   });
 }
@@ -1638,14 +1411,8 @@ function purgeCommuniquesModal() {
       btn.disabled = true; btn.textContent = "Suppression en cours…";
       try {
         const r = await api.call("DELETE", "/admin/purge-communiques");
-        closeModal();
-        await loadRemote();
-        renderRoute();
-        toast(`✅ ${r.count} communiqué(s) supprimé(s)`);
-      } catch (err) {
-        btn.disabled = false; btn.textContent = "Supprimer tout";
-        toast(err.message || "Erreur lors de la suppression");
-      }
+        closeModal(); await loadRemote(); renderRoute(); toast(`✅ ${r.count} communiqué(s) supprimé(s)`);
+      } catch (err) { btn.disabled = false; btn.textContent = "Supprimer tout"; toast(err.message || "Erreur"); }
     };
   });
 }
@@ -1670,19 +1437,10 @@ function renderStudents(){
   list.sort((a,b)=> a.nom.localeCompare(b.nom));
   const rows = list.map(s => `
     <tr>
-      <td>${esc(s.nom)}</td>
-      <td>${esc(s.prenom)}</td>
+      <td>${esc(s.nom)}</td><td>${esc(s.prenom)}</td>
       <td><span class="tag ${s.filiere.toLowerCase()}">${s.filiere}</span></td>
-      <td>${s.niveau}</td>
-      <td>${esc(s.annee) || ANNEE_DEFAUT}</td>
-      <td>${esc(s.email)||"—"}</td>
-      <td>
-        <div class="row-actions">
-          <button class="icon-btn" data-action="delete-student" data-id="${s.id}" aria-label="Supprimer">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg>
-          </button>
-        </div>
-      </td>
+      <td>${s.niveau}</td><td>${esc(s.annee) || ANNEE_DEFAUT}</td><td>${esc(s.email)||"—"}</td>
+      <td><div class="row-actions"><button class="icon-btn" data-action="delete-student" data-id="${s.id}" aria-label="Supprimer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg></button></div></td>
     </tr>
   `).join("");
   return `
@@ -1692,10 +1450,7 @@ function renderStudents(){
       <input class="text-input" id="fStudSearch" placeholder="Rechercher un étudiant…" value="${esc(f.q)}">
     </div>
     <div class="panel">
-      ${list.length ? `<div class="table-scroll"><table class="data">
-        <thead><tr><th>Nom</th><th>Prénom</th><th>Filière</th><th>Niveau</th><th>Année</th><th>E-mail</th><th></th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table></div>` : emptyState("Aucun étudiant pour le moment.")}
+      ${list.length ? `<div class="table-scroll"><table class="data"><thead><tr><th>Nom</th><th>Prénom</th><th>Filière</th><th>Niveau</th><th>Année</th><th>E-mail</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : emptyState("Aucun étudiant pour le moment.")}
     </div>
   `;
 }
@@ -1705,13 +1460,7 @@ function pdfRows(list, kind, admin){
   return list.map((p, index) => `
     <div class="pdf-row">
       <span class="pdf-num">${list.length - index}</span>
-      <div class="pdf-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-          <path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/>
-          <path d="M14 3v5h5"/>
-          <text x="8" y="18.5" font-size="6.5" font-weight="700" fill="#60A5FA" stroke="none">PDF</text>
-        </svg>
-      </div>
+      <div class="pdf-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v5h5"/><text x="8" y="18.5" font-size="6.5" font-weight="700" fill="#60A5FA" stroke="none">PDF</text></svg></div>
       <div class="pdf-meta">
         <div class="pdf-name">${esc(p.titre)}</div>
         ${p.commentaire ? `<div class="pdf-commentaire">${esc(p.commentaire)}</div>` : ""}
@@ -1722,177 +1471,54 @@ function pdfRows(list, kind, admin){
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           <span class="pdf-btn-label">Voir</span>
         </button>
-        ${!isEtudiant ? `<button class="pdf-btn download" data-action="download-pdf" data-kind="${kind}" data-id="${p.id}" aria-label="Télécharger">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
-          <span class="pdf-btn-label">Télécharger</span>
-        </button>` : ""}
-        ${admin ? `<button class="pdf-btn delete" data-action="delete-pdf" data-kind="${kind}" data-id="${p.id}" aria-label="Supprimer">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg>
-          <span class="pdf-btn-label">Supprimer</span>
-        </button>` : ""}
+        ${!isEtudiant ? `<button class="pdf-btn download" data-action="download-pdf" data-kind="${kind}" data-id="${p.id}" aria-label="Télécharger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg><span class="pdf-btn-label">Télécharger</span></button>` : ""}
+        ${admin ? `<button class="pdf-btn delete" data-action="delete-pdf" data-kind="${kind}" data-id="${p.id}" aria-label="Supprimer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg><span class="pdf-btn-label">Supprimer</span></button>` : ""}
       </div>
     </div>
   `).join("");
 }
 
 function renderNotes(){
-  const u = uiState.notes;
-  const admin = isAdmin();
-  const list = state.notesPdfs
-    .filter(p => p.filiere===u.filiere && p.niveau===u.niveau && (p.annee || ANNEE_DEFAUT) === u.annee)
-    .sort((a,b) => b.dateAjout.localeCompare(a.dateAjout));
-  const filterBar = admin
-    ? `<div class="filter-bar">
-        <select id="fNoteFiliere">${FILIERES.map(f=>`<option value="${f}" ${u.filiere===f?"selected":""}>${FILIERE_LABEL[f]}</option>`).join("")}</select>
-        <select id="fNoteNiveau">${NIVEAUX.map(n=>`<option value="${n}" ${u.niveau===n?"selected":""}>${n}</option>`).join("")}</select>
-        <select id="fNoteAnnee">${ANNEES_UNIV.map(a=>`<option value="${a}" ${u.annee===a?"selected":""}>${a}</option>`).join("")}</select>
-        <div style="margin-left:auto; display:flex; gap:10px;">
-          <button class="btn danger" id="btnPurgeYear">⚠️ Fin d'année</button>
-          <button class="btn" id="btnAddNotePdf">+ Ajouter un relevé</button>
-        </div>
-      </div>`
-    : `<div class="filter-bar"><span class="locked-filter">Filière &amp; niveau : <strong>${FILIERE_LABEL[u.filiere]} · ${u.niveau} · ${u.annee}</strong></span></div>`;
-  return `
-    ${filterBar}
-    <div class="panel">
-      <div class="panel-head"><div><h2>${FILIERE_LABEL[u.filiere]} · ${u.niveau} · ${u.annee}</h2></div></div>
-      ${list.length ? pdfRows(list, "notes", admin) : emptyState(admin ? "Aucun relevé de notes déposé pour cette année." : "Aucun relevé disponible.")}
-    </div>
-  `;
+  const u = uiState.notes; const admin = isAdmin();
+  const list = state.notesPdfs.filter(p => p.filiere===u.filiere && p.niveau===u.niveau && (p.annee || ANNEE_DEFAUT) === u.annee).sort((a,b) => b.dateAjout.localeCompare(a.dateAjout));
+  const filterBar = admin ? `<div class="filter-bar"><select id="fNoteFiliere">${FILIERES.map(f=>`<option value="${f}" ${u.filiere===f?"selected":""}>${FILIERE_LABEL[f]}</option>`).join("")}</select><select id="fNoteNiveau">${NIVEAUX.map(n=>`<option value="${n}" ${u.niveau===n?"selected":""}>${n}</option>`).join("")}</select><select id="fNoteAnnee">${ANNEES_UNIV.map(a=>`<option value="${a}" ${u.annee===a?"selected":""}>${a}</option>`).join("")}</select><div style="margin-left:auto; display:flex; gap:10px;"><button class="btn danger" id="btnPurgeYear">⚠️ Fin d'année</button><button class="btn" id="btnAddNotePdf">+ Ajouter un relevé</button></div></div>` : `<div class="filter-bar"><span class="locked-filter">Filière &amp; niveau : <strong>${FILIERE_LABEL[u.filiere]} · ${u.niveau} · ${u.annee}</strong></span></div>`;
+  return `${filterBar}<div class="panel"><div class="panel-head"><div><h2>${FILIERE_LABEL[u.filiere]} · ${u.niveau} · ${u.annee}</h2></div></div>${list.length ? pdfRows(list, "notes", admin) : emptyState(admin ? "Aucun relevé de notes déposé." : "Aucun relevé disponible.")}</div>`;
 }
 
 function renderRattrapage(){
-  const u = uiState.rattrapage;
-  const admin = isAdmin();
-  const list = state.rattrapagePdfs
-    .filter(p => p.filiere===u.filiere && p.niveau===u.niveau && (p.annee || ANNEE_DEFAUT) === u.annee)
-    .sort((a,b) => b.dateAjout.localeCompare(a.dateAjout));
-  const filterBar = admin
-    ? `<div class="filter-bar">
-        <select id="fRatFiliere">${FILIERES.map(f=>`<option value="${f}" ${u.filiere===f?"selected":""}>${FILIERE_LABEL[f]}</option>`).join("")}</select>
-        <select id="fRatNiveau">${NIVEAUX.map(n=>`<option value="${n}" ${u.niveau===n?"selected":""}>${n}</option>`).join("")}</select>
-        <select id="fRatAnnee">${ANNEES_UNIV.map(a=>`<option value="${a}" ${u.annee===a?"selected":""}>${a}</option>`).join("")}</select>
-        <div style="margin-left:auto; display:flex; gap:10px;">
-          <button class="btn danger" id="btnPurgeYear">⚠️ Fin d'année</button>
-          <button class="btn" id="btnAddRattrapagePdf">+ Ajouter un rattrapage</button>
-        </div>
-      </div>`
-    : `<div class="filter-bar"><span class="locked-filter">Filière &amp; niveau : <strong>${FILIERE_LABEL[u.filiere]} · ${u.niveau} · ${u.annee}</strong></span></div>`;
-  return `
-    ${filterBar}
-    <div class="panel">
-      <div class="panel-head"><div><h2>${FILIERE_LABEL[u.filiere]} · ${u.niveau} · ${u.annee}</h2></div></div>
-      ${list.length ? pdfRows(list, "rattrapage", admin) : emptyState(admin ? "Aucun relevé de rattrapage déposé pour cette année." : "Aucun relevé de rattrapage disponible.")}
-    </div>
-  `;
+  const u = uiState.rattrapage; const admin = isAdmin();
+  const list = state.rattrapagePdfs.filter(p => p.filiere===u.filiere && p.niveau===u.niveau && (p.annee || ANNEE_DEFAUT) === u.annee).sort((a,b) => b.dateAjout.localeCompare(a.dateAjout));
+  const filterBar = admin ? `<div class="filter-bar"><select id="fRatFiliere">${FILIERES.map(f=>`<option value="${f}" ${u.filiere===f?"selected":""}>${FILIERE_LABEL[f]}</option>`).join("")}</select><select id="fRatNiveau">${NIVEAUX.map(n=>`<option value="${n}" ${u.niveau===n?"selected":""}>${n}</option>`).join("")}</select><select id="fRatAnnee">${ANNEES_UNIV.map(a=>`<option value="${a}" ${u.annee===a?"selected":""}>${a}</option>`).join("")}</select><div style="margin-left:auto; display:flex; gap:10px;"><button class="btn danger" id="btnPurgeYear">⚠️ Fin d'année</button><button class="btn" id="btnAddRattrapagePdf">+ Ajouter un rattrapage</button></div></div>` : `<div class="filter-bar"><span class="locked-filter">Filière &amp; niveau : <strong>${FILIERE_LABEL[u.filiere]} · ${u.niveau} · ${u.annee}</strong></span></div>`;
+  return `${filterBar}<div class="panel"><div class="panel-head"><div><h2>${FILIERE_LABEL[u.filiere]} · ${u.niveau} · ${u.annee}</h2></div></div>${list.length ? pdfRows(list, "rattrapage", admin) : emptyState(admin ? "Aucun relevé de rattrapage déposé." : "Aucun relevé de rattrapage disponible.")}</div>`;
 }
 
 function renderResultats(){
-  const u = uiState.resultats;
-  const admin = isAdmin();
-  const list = state.resultatPdfs
-    .filter(p => p.filiere===u.filiere && p.niveau===u.niveau && (p.annee || ANNEE_DEFAUT) === u.annee)
-    .sort((a,b) => b.dateAjout.localeCompare(a.dateAjout));
-  const filterBar = admin
-    ? `<div class="filter-bar">
-        <select id="fResFiliere">${FILIERES.map(f=>`<option value="${f}" ${u.filiere===f?"selected":""}>${FILIERE_LABEL[f]}</option>`).join("")}</select>
-        <select id="fResNiveau">${NIVEAUX.map(n=>`<option value="${n}" ${u.niveau===n?"selected":""}>${n}</option>`).join("")}</select>
-        <select id="fResAnnee">${ANNEES_UNIV.map(a=>`<option value="${a}" ${u.annee===a?"selected":""}>${a}</option>`).join("")}</select>
-        <div style="margin-left:auto; display:flex; gap:10px;">
-          <button class="btn danger" id="btnPurgeYear">⚠️ Fin d'année</button>
-          <button class="btn" id="btnAddResultatPdf">+ Ajouter un résultat</button>
-        </div>
-      </div>`
-    : `<div class="filter-bar"><span class="locked-filter">Filière &amp; niveau : <strong>${FILIERE_LABEL[u.filiere]} · ${u.niveau} · ${u.annee}</strong></span></div>`;
-  return `
-    ${filterBar}
-    <div class="panel">
-      <div class="panel-head"><div><h2>${FILIERE_LABEL[u.filiere]} · ${u.niveau} · ${u.annee}</h2></div></div>
-      ${list.length ? pdfRows(list, "resultats", admin) : emptyState(admin ? "Aucun résultat déposé." : "Aucun résultat disponible.")}
-    </div>
-  `;
+  const u = uiState.resultats; const admin = isAdmin();
+  const list = state.resultatPdfs.filter(p => p.filiere===u.filiere && p.niveau===u.niveau && (p.annee || ANNEE_DEFAUT) === u.annee).sort((a,b) => b.dateAjout.localeCompare(a.dateAjout));
+  const filterBar = admin ? `<div class="filter-bar"><select id="fResFiliere">${FILIERES.map(f=>`<option value="${f}" ${u.filiere===f?"selected":""}>${FILIERE_LABEL[f]}</option>`).join("")}</select><select id="fResNiveau">${NIVEAUX.map(n=>`<option value="${n}" ${u.niveau===n?"selected":""}>${n}</option>`).join("")}</select><select id="fResAnnee">${ANNEES_UNIV.map(a=>`<option value="${a}" ${u.annee===a?"selected":""}>${a}</option>`).join("")}</select><div style="margin-left:auto; display:flex; gap:10px;"><button class="btn danger" id="btnPurgeYear">⚠️ Fin d'année</button><button class="btn" id="btnAddResultatPdf">+ Ajouter un résultat</button></div></div>` : `<div class="filter-bar"><span class="locked-filter">Filière &amp; niveau : <strong>${FILIERE_LABEL[u.filiere]} · ${u.niveau} · ${u.annee}</strong></span></div>`;
+  return `${filterBar}<div class="panel"><div class="panel-head"><div><h2>${FILIERE_LABEL[u.filiere]} · ${u.niveau} · ${u.annee}</h2></div></div>${list.length ? pdfRows(list, "resultats", admin) : emptyState(admin ? "Aucun résultat déposé." : "Aucun résultat disponible.")}</div>`;
 }
 
 function renderEmploi(){
-  const u = uiState.emploi;
-  const admin = isAdmin();
-  const list = state.schedulePdfs
-    .filter(p => p.filiere===u.filiere && p.niveau===u.niveau && (p.annee || ANNEE_DEFAUT) === u.annee)
-    .sort((a,b) => b.dateAjout.localeCompare(a.dateAjout));
-  const filterBar = admin
-    ? `<div class="filter-bar">
-        <select id="fEmpFiliere">${FILIERES.map(f=>`<option value="${f}" ${u.filiere===f?"selected":""}>${FILIERE_LABEL[f]}</option>`).join("")}</select>
-        <select id="fEmpNiveau">${NIVEAUX.map(n=>`<option value="${n}" ${u.niveau===n?"selected":""}>${n}</option>`).join("")}</select>
-        <select id="fEmpAnnee">${ANNEES_UNIV.map(a=>`<option value="${a}" ${u.annee===a?"selected":""}>${a}</option>`).join("")}</select>
-        <div style="margin-left:auto; display:flex; gap:10px;">
-          <button class="btn danger" id="btnPurgeYear">⚠️ Fin d'année</button>
-          <button class="btn" id="btnAddPdf">+ Ajouter un PDF</button>
-        </div>
-      </div>`
-    : `<div class="filter-bar"><span class="locked-filter">Filière &amp; niveau : <strong>${FILIERE_LABEL[u.filiere]} · ${u.niveau} · ${u.annee}</strong></span></div>`;
-  return `
-    ${filterBar}
-    <div class="panel">
-      <div class="panel-head"><div><h2>${FILIERE_LABEL[u.filiere]} · ${u.niveau} · ${u.annee}</h2></div></div>
-      ${list.length ? pdfRows(list, "schedule", admin) : emptyState(admin ? "Aucun emploi du temps déposé." : "Aucun emploi du temps disponible.")}
-    </div>
-  `;
+  const u = uiState.emploi; const admin = isAdmin();
+  const list = state.schedulePdfs.filter(p => p.filiere===u.filiere && p.niveau===u.niveau && (p.annee || ANNEE_DEFAUT) === u.annee).sort((a,b) => b.dateAjout.localeCompare(a.dateAjout));
+  const filterBar = admin ? `<div class="filter-bar"><select id="fEmpFiliere">${FILIERES.map(f=>`<option value="${f}" ${u.filiere===f?"selected":""}>${FILIERE_LABEL[f]}</option>`).join("")}</select><select id="fEmpNiveau">${NIVEAUX.map(n=>`<option value="${n}" ${u.niveau===n?"selected":""}>${n}</option>`).join("")}</select><select id="fEmpAnnee">${ANNEES_UNIV.map(a=>`<option value="${a}" ${u.annee===a?"selected":""}>${a}</option>`).join("")}</select><div style="margin-left:auto; display:flex; gap:10px;"><button class="btn danger" id="btnPurgeYear">⚠️ Fin d'année</button><button class="btn" id="btnAddPdf">+ Ajouter un PDF</button></div></div>` : `<div class="filter-bar"><span class="locked-filter">Filière &amp; niveau : <strong>${FILIERE_LABEL[u.filiere]} · ${u.niveau} · ${u.annee}</strong></span></div>`;
+  return `${filterBar}<div class="panel"><div class="panel-head"><div><h2>${FILIERE_LABEL[u.filiere]} · ${u.niveau} · ${u.annee}</h2></div></div>${list.length ? pdfRows(list, "schedule", admin) : emptyState(admin ? "Aucun emploi du temps déposé." : "Aucun emploi du temps disponible.")}</div>`;
 }
 
 function renderCommuniques(){
   const admin = isAdmin();
   const list = state.communiquesPdfs.slice().sort((a,b) => b.dateAjout.localeCompare(a.dateAjout));
-  const filterBar = admin
-    ? `<div class="filter-bar">
-        <span class="locked-filter">Visible par <strong>tous les étudiants</strong></span>
-        <div style="margin-left:auto; display:flex; gap:10px;">
-          ${list.length ? `<button class="btn danger" id="btnPurgeCommuniques" style="padding:9px 15px; font-size:13.5px;">🗑️ Tout supprimer</button>` : ""}
-          <button class="btn" id="btnAddCommunique">+ Ajouter un communiqué</button>
-        </div>
-      </div>`
-    : `<div class="filter-bar"><span class="locked-filter">📢 Annonces officielles de l'INPTIC</span></div>`;
-  return `
-    ${filterBar}
-    <div class="panel">
-      <div class="panel-head"><div><h2>Communiqués officiels</h2><p>Annonces visibles par tous les étudiants.</p></div></div>
-      ${list.length ? pdfRows(list, "communiques", admin) : emptyState(admin ? "Aucun communiqué publié." : "Aucun communiqué pour le moment.")}
-    </div>
-  `;
+  const filterBar = admin ? `<div class="filter-bar"><span class="locked-filter">Visible par <strong>tous les étudiants</strong></span><div style="margin-left:auto; display:flex; gap:10px;">${list.length ? `<button class="btn danger" id="btnPurgeCommuniques" style="padding:9px 15px; font-size:13.5px;">🗑️ Tout supprimer</button>` : ""}<button class="btn" id="btnAddCommunique">+ Ajouter un communiqué</button></div></div>` : `<div class="filter-bar"><span class="locked-filter">📢 Annonces officielles de l'INPTIC</span></div>`;
+  return `${filterBar}<div class="panel"><div class="panel-head"><div><h2>Communiqués officiels</h2><p>Annonces visibles par tous les étudiants.</p></div></div>${list.length ? pdfRows(list, "communiques", admin) : emptyState(admin ? "Aucun communiqué publié." : "Aucun communiqué pour le moment.")}</div>`;
 }
 
 function renderCompte(){
   if(!currentUser) return emptyState("Non connecté.");
   const admin = isAdmin();
   if(admin){
-    const lockedListHtml = lockedYears.length
-      ? lockedYears.map(a => `
-          <div class="pdf-row" style="padding:12px 14px;">
-            <span style="font-size:20px;flex-shrink:0;">🔒</span>
-            <div class="pdf-meta">
-              <div class="pdf-name">${esc(a)}</div>
-              <div class="pdf-sub">Inscriptions bloquées</div>
-            </div>
-            <div class="pdf-actions">
-              <button class="btn secondary small" data-action="unlock-year" data-annee="${esc(a)}">🔓 Déverrouiller</button>
-            </div>
-          </div>`).join("")
-      : `<div class="admin-only-note">Aucune année verrouillée pour le moment.</div>`;
-    return `
-      <div class="panel">
-        <div class="panel-head"><div><h2>Mon compte administrateur</h2></div></div>
-        <div class="field"><label>Nom complet</label><div>${esc(currentUser.prenom)} ${esc(currentUser.nom)}</div></div>
-        <div class="field"><label>E-mail</label><div>${esc(currentUser.email)}</div></div>
-        <div class="field"><label>Rôle</label><div><span class="role-pill admin">Admin</span></div></div>
-      </div>
-      <div class="panel">
-        <div class="panel-head"><div><h2>Années universitaires verrouillées</h2><p>Les étudiants ne peuvent pas s'inscrire pour ces années.</p></div></div>
-        ${lockedListHtml}
-      </div>
-      <div class="panel">
-        <div class="panel-head"><div><h2>Notifications push</h2><p>Recevez des alertes même quand l'app est fermée.</p></div></div>
-        <div id="pushStatus"></div>
-      </div>
-    `;
+    const lockedListHtml = lockedYears.length ? lockedYears.map(a => `<div class="pdf-row" style="padding:12px 14px;"><span style="font-size:20px;flex-shrink:0;">🔒</span><div class="pdf-meta"><div class="pdf-name">${esc(a)}</div><div class="pdf-sub">Inscriptions bloquées</div></div><div class="pdf-actions"><button class="btn secondary small" data-action="unlock-year" data-annee="${esc(a)}">🔓 Déverrouiller</button></div></div>`).join("") : `<div class="admin-only-note">Aucune année verrouillée pour le moment.</div>`;
+    return `<div class="panel"><div class="panel-head"><div><h2>Mon compte administrateur</h2></div></div><div class="field"><label>Nom complet</label><div>${esc(currentUser.prenom)} ${esc(currentUser.nom)}</div></div><div class="field"><label>E-mail</label><div>${esc(currentUser.email)}</div></div><div class="field"><label>Rôle</label><div><span class="role-pill admin">Admin</span></div></div></div><div class="panel"><div class="panel-head"><div><h2>Années universitaires verrouillées</h2><p>Les étudiants ne peuvent pas s'inscrire pour ces années.</p></div></div>${lockedListHtml}</div><div class="panel"><div class="panel-head"><div><h2>Notifications push</h2><p>Recevez des alertes même quand l'app est fermée.</p></div></div><div id="pushStatus"></div></div>`;
   }
   const student = state.students.find(s => s.id === currentUser.id);
   if(!student) return emptyState("Profil étudiant introuvable.");
@@ -1902,41 +1528,10 @@ function renderCompte(){
   const nextNiveau = idx < niveaux.length - 1 ? niveaux[idx + 1] : null;
   const [a, b] = anneeEnCours.split("-").map(Number);
   const nextAnnee = `${a + 1}-${b + 1}`;
-  return `
-    <div class="panel">
-      <div class="panel-head"><div><h2>Mes informations</h2></div></div>
-      <div class="field"><label>Nom</label><div>${esc(student.nom)}</div></div>
-      <div class="field"><label>Prénom</label><div>${esc(student.prenom)}</div></div>
-      <div class="field"><label>Filière</label><div><span class="tag ${student.filiere.toLowerCase()}">${student.filiere}</span> ${FILIERE_LABEL[student.filiere]}</div></div>
-      <div class="field"><label>Niveau</label><div><strong>${student.niveau}</strong></div></div>
-      <div class="field"><label>Année</label><div><strong>${anneeEnCours}</strong></div></div>
-      <div class="field"><label>E-mail</label><div>${esc(student.email) || "—"}</div></div>
-    </div>
-    <div class="panel">
-      <div class="panel-head"><div><h2>Passage au niveau supérieur</h2>
-        <p>Votre filière (<strong>${student.filiere}</strong>) restera identique.<br>
-        • <strong>Admission</strong> : niveau <strong>${student.niveau}</strong> → <strong>${nextNiveau || "—"}</strong> · année <strong>${nextAnnee}</strong><br>
-        • <strong>Redoublement</strong> : niveau <strong>${student.niveau}</strong> conservé · année <strong>${nextAnnee}</strong></p>
-      </div></div>
-      <div style="display:flex; gap:10px; flex-wrap:wrap;">
-        ${nextNiveau ? `<button class="btn" id="btnPassSelf" data-annee="${anneeEnCours}">✅ Je suis admis — Passer en ${nextNiveau} (${nextAnnee})</button>` : `<button class="btn" disabled style="opacity:.5;">🎓 Vous êtes en L3</button>`}
-        <button class="btn secondary" id="btnRepeatSelf" data-annee="${anneeEnCours}">🔁 Je redouble — Rester en ${student.niveau} (${nextAnnee})</button>
-      </div>
-      <p class="admin-only-note" style="margin-top:10px;">⚠️ Action irréversible.</p>
-    </div>
-    <div class="panel">
-      <div class="panel-head"><div><h2>Notifications push</h2><p>Recevez des alertes même quand l'app est fermée.</p></div></div>
-      <div id="pushStatus"></div>
-    </div>
-  `;
+  return `<div class="panel"><div class="panel-head"><div><h2>Mes informations</h2></div></div><div class="field"><label>Nom</label><div>${esc(student.nom)}</div></div><div class="field"><label>Prénom</label><div>${esc(student.prenom)}</div></div><div class="field"><label>Filière</label><div><span class="tag ${student.filiere.toLowerCase()}">${student.filiere}</span> ${FILIERE_LABEL[student.filiere]}</div></div><div class="field"><label>Niveau</label><div><strong>${student.niveau}</strong></div></div><div class="field"><label>Année</label><div><strong>${anneeEnCours}</strong></div></div><div class="field"><label>E-mail</label><div>${esc(student.email) || "—"}</div></div></div><div class="panel"><div class="panel-head"><div><h2>Passage au niveau supérieur</h2><p>Votre filière (<strong>${student.filiere}</strong>) restera identique.<br>• <strong>Admission</strong> : niveau <strong>${student.niveau}</strong> → <strong>${nextNiveau || "—"}</strong> · année <strong>${nextAnnee}</strong><br>• <strong>Redoublement</strong> : niveau <strong>${student.niveau}</strong> conservé · année <strong>${nextAnnee}</strong></p></div></div><div style="display:flex; gap:10px; flex-wrap:wrap;">${nextNiveau ? `<button class="btn" id="btnPassSelf" data-annee="${anneeEnCours}">✅ Je suis admis — Passer en ${nextNiveau} (${nextAnnee})</button>` : `<button class="btn" disabled style="opacity:.5;">🎓 Vous êtes en L3</button>`}<button class="btn secondary" id="btnRepeatSelf" data-annee="${anneeEnCours}">🔁 Je redouble — Rester en ${student.niveau} (${nextAnnee})</button></div><p class="admin-only-note" style="margin-top:10px;">⚠️ Action irréversible.</p></div><div class="panel"><div class="panel-head"><div><h2>Notifications push</h2><p>Recevez des alertes même quand l'app est fermée.</p></div></div><div id="pushStatus"></div></div>`;
 }
 
-function emptyState(msg){
-  return `<div class="empty-state">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-    <p>${esc(msg)}</p>
-  </div>`;
-}
+function emptyState(msg){ return `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><p>${esc(msg)}</p></div>`; }
 
 const ROUTES = {
   etudiants:{title:"Étudiants", sub:"Gestion des inscriptions par filière et niveau", render:renderStudents, adminOnly:true},
@@ -1951,10 +1546,7 @@ const ROUTES = {
 function currentRoute(){
   const h = location.hash.replace(/^#\/?/, "");
   let route = ROUTES[h] ? h : "emploi";
-  if(ROUTES[route].adminOnly && !isAdmin()){
-    route = "emploi";
-    location.hash = "#/emploi";
-  }
+  if(ROUTES[route].adminOnly && !isAdmin()){ route = "emploi"; location.hash = "#/emploi"; }
   return route;
 }
 
@@ -1983,8 +1575,7 @@ function attachViewHandlers(route){
 
   view.onclick = async (e) => {
     if(e.target.id === "btnPassSelf"){
-      const annee = e.target.dataset.annee;
-      const niveaux = ["L1", "L2", "L3"];
+      const annee = e.target.dataset.annee; const niveaux = ["L1", "L2", "L3"];
       const student = state.students.find(s => s.id === currentUser.id);
       if(!student){ toast("Profil introuvable"); return; }
       const i = niveaux.indexOf(student.niveau);
@@ -1997,42 +1588,24 @@ function attachViewHandlers(route){
       try{
         const r = await api.call("POST", "/me/pass", {json: {annee}});
         toast(`✅ ${r.ancienNiveau} → ${r.nouveauNiveau} · ${r.nouvelleAnnee}`);
-        await loadRemote();
-        const me = await api.call("GET", "/me");
-        currentUser = me.user;
-        lsSet(LS_USER, currentUser);
-        syncFiltersForStudent();
-        renderRoute();
-      }catch(err){
-        e.target.disabled = false; e.target.textContent = "✅ Je suis admis";
-        toast(err.message || "Échec");
-      }
+        await loadRemote(); const me = await api.call("GET", "/me"); currentUser = me.user; lsSet(LS_USER, currentUser);
+        syncFiltersForStudent(); renderRoute();
+      }catch(err){ e.target.disabled = false; e.target.textContent = "✅ Je suis admis"; toast(err.message || "Échec"); }
       return;
     }
 
     if(e.target.id === "btnRepeatSelf"){
-      const annee = e.target.dataset.annee;
-      const student = state.students.find(s => s.id === currentUser.id);
+      const annee = e.target.dataset.annee; const student = state.students.find(s => s.id === currentUser.id);
       if(!student){ toast("Profil introuvable"); return; }
-      const [a, b] = annee.split("-").map(Number);
-      const nextAnnee = `${a + 1}-${b + 1}`;
+      const [a, b] = annee.split("-").map(Number); const nextAnnee = `${a + 1}-${b + 1}`;
       if(!confirm(`Confirmer le redoublement en ${student.niveau} (${student.filiere}) pour l'année ${nextAnnee} ?`)) return;
-      e.target.disabled = true;
-      const originalLabel = e.target.textContent;
-      e.target.textContent = "Enregistrement…";
+      e.target.disabled = true; const originalLabel = e.target.textContent; e.target.textContent = "Enregistrement…";
       try{
         const r = await api.call("POST", "/me/repeat", {json: {annee}});
         toast(`🔁 Redoublement en ${r.niveau || student.niveau} · ${r.nouvelleAnnee || nextAnnee}`);
-        await loadRemote();
-        const me = await api.call("GET", "/me");
-        currentUser = me.user;
-        lsSet(LS_USER, currentUser);
-        syncFiltersForStudent();
-        renderRoute();
-      }catch(err){
-        e.target.disabled = false; e.target.textContent = originalLabel;
-        toast(err.message || "Échec du redoublement");
-      }
+        await loadRemote(); const me = await api.call("GET", "/me"); currentUser = me.user; lsSet(LS_USER, currentUser);
+        syncFiltersForStudent(); renderRoute();
+      }catch(err){ e.target.disabled = false; e.target.textContent = originalLabel; toast(err.message || "Échec du redoublement"); }
       return;
     }
 
@@ -2045,8 +1618,7 @@ function attachViewHandlers(route){
       else if(route === "notes") annee = uiState.notes.annee;
       else if(route === "rattrapage") annee = uiState.rattrapage.annee;
       else if(route === "resultats") annee = uiState.resultats.annee;
-      purgeYearModal(annee);
-      return;
+      purgeYearModal(annee); return;
     }
 
     const btn = e.target.closest("[data-action]");
@@ -2060,15 +1632,9 @@ function attachViewHandlers(route){
         btn.disabled = true;
         try{
           await api.call("DELETE", "/admin/lock-year/" + encodeURIComponent(annee));
-          await loadLockedYears();
-          await dbSet("lockedYears", lockedYears);
-          lsSet(LS_YEARS, lockedYears);
-          renderRoute();
-          toast(`✅ Année ${annee} déverrouillée`);
-        }catch(err){
-          btn.disabled = false;
-          toast(err.message || "Échec du déverrouillage");
-        }
+          await loadLockedYears(); await dbSet("lockedYears", lockedYears); lsSet(LS_YEARS, lockedYears);
+          renderRoute(); toast(`✅ Année ${annee} déverrouillée`);
+        }catch(err){ btn.disabled = false; toast(err.message || "Échec du déverrouillage"); }
       }
       return;
     }
@@ -2091,11 +1657,7 @@ function attachViewHandlers(route){
       if (pdf) openRemotePdf(pdf);
     } else if(action==="download-pdf"){
       const kind = btn.dataset.kind;
-      const list = kind==="notes" ? state.notesPdfs
-                 : kind==="resultats" ? state.resultatPdfs
-                 : kind==="rattrapage" ? state.rattrapagePdfs
-                 : kind==="communiques" ? state.communiquesPdfs
-                 : state.schedulePdfs;
+      const list = kind==="notes" ? state.notesPdfs : kind==="resultats" ? state.resultatPdfs : kind==="rattrapage" ? state.rattrapagePdfs : kind==="communiques" ? state.communiquesPdfs : state.schedulePdfs;
       const pdf = list.find(x => x.id === btn.dataset.id);
       if (pdf) downloadRemotePdf(pdf);
     } else if(action==="delete-pdf"){
@@ -2135,80 +1697,39 @@ function attachViewHandlers(route){
   };
 
   view.oninput = (e) => {
-    if(e.target.id==="fStudSearch"){
-      uiState.students.q = e.target.value;
-      renderStudentsListOnly();
-    }
+    if(e.target.id==="fStudSearch"){ uiState.students.q = e.target.value; renderStudentsListOnly(); }
   };
 
-  if(route==="emploi" && isAdmin()){
-    const btn = document.getElementById("btnAddPdf");
-    if(btn) btn.onclick = ()=> pdfUploadModal("schedule", uiState.emploi.filiere, uiState.emploi.niveau, uiState.emploi.annee);
-  }
-  if(route==="notes" && isAdmin()){
-    const btn = document.getElementById("btnAddNotePdf");
-    if(btn) btn.onclick = ()=> pdfUploadModal("notes", uiState.notes.filiere, uiState.notes.niveau, uiState.notes.annee);
-  }
-  if(route==="rattrapage" && isAdmin()){
-    const btn = document.getElementById("btnAddRattrapagePdf");
-    if(btn) btn.onclick = ()=> pdfUploadModal("rattrapage", uiState.rattrapage.filiere, uiState.rattrapage.niveau, uiState.rattrapage.annee);
-  }
-  if(route==="resultats" && isAdmin()){
-    const btn = document.getElementById("btnAddResultatPdf");
-    if(btn) btn.onclick = ()=> pdfUploadModal("resultats", uiState.resultats.filiere, uiState.resultats.niveau, uiState.resultats.annee);
-  }
+  if(route==="emploi" && isAdmin()){ const btn = document.getElementById("btnAddPdf"); if(btn) btn.onclick = ()=> pdfUploadModal("schedule", uiState.emploi.filiere, uiState.emploi.niveau, uiState.emploi.annee); }
+  if(route==="notes" && isAdmin()){ const btn = document.getElementById("btnAddNotePdf"); if(btn) btn.onclick = ()=> pdfUploadModal("notes", uiState.notes.filiere, uiState.notes.niveau, uiState.notes.annee); }
+  if(route==="rattrapage" && isAdmin()){ const btn = document.getElementById("btnAddRattrapagePdf"); if(btn) btn.onclick = ()=> pdfUploadModal("rattrapage", uiState.rattrapage.filiere, uiState.rattrapage.niveau, uiState.rattrapage.annee); }
+  if(route==="resultats" && isAdmin()){ const btn = document.getElementById("btnAddResultatPdf"); if(btn) btn.onclick = ()=> pdfUploadModal("resultats", uiState.resultats.filiere, uiState.resultats.niveau, uiState.resultats.annee); }
   if(route==="communiques" && isAdmin()){
-    const btn = document.getElementById("btnAddCommunique");
-    if(btn) btn.onclick = ()=> pdfUploadModal("communiques", "TOUTES", "TOUS", "TOUTES");
-    const btnPurge = document.getElementById("btnPurgeCommuniques");
-    if(btnPurge) btnPurge.onclick = ()=> purgeCommuniquesModal();
+    const btn = document.getElementById("btnAddCommunique"); if(btn) btn.onclick = ()=> pdfUploadModal("communiques", "TOUTES", "TOUS", "TOUTES");
+    const btnPurge = document.getElementById("btnPurgeCommuniques"); if(btnPurge) btnPurge.onclick = ()=> purgeCommuniquesModal();
   }
 }
 
 function renderStudentsListOnly(){
   document.getElementById("view").innerHTML = renderStudents();
   attachViewHandlers("etudiants");
-  const el = document.getElementById("fStudSearch");
-  el.focus();
-  el.setSelectionRange(el.value.length, el.value.length);
+  const el = document.getElementById("fStudSearch"); el.focus(); el.setSelectionRange(el.value.length, el.value.length);
 }
 
-function closeSidebarMobile(){
-  document.getElementById("sidebar").classList.remove("open");
-  document.getElementById("scrim").classList.remove("show");
-}
-document.getElementById("menuToggle").addEventListener("click", ()=>{
-  document.getElementById("sidebar").classList.add("open");
-  document.getElementById("scrim").classList.add("show");
-});
+function closeSidebarMobile(){ document.getElementById("sidebar").classList.remove("open"); document.getElementById("scrim").classList.remove("show"); }
+document.getElementById("menuToggle").addEventListener("click", ()=>{ document.getElementById("sidebar").classList.add("open"); document.getElementById("scrim").classList.add("show"); });
 document.getElementById("scrim").addEventListener("click", closeSidebarMobile);
 
 let deferredPrompt = null;
-window.addEventListener("beforeinstallprompt", (e)=>{
-  e.preventDefault();
-  deferredPrompt = e;
-  document.getElementById("installBtn").hidden = false;
-});
+window.addEventListener("beforeinstallprompt", (e)=>{ e.preventDefault(); deferredPrompt = e; document.getElementById("installBtn").hidden = false; });
 document.getElementById("installBtn").addEventListener("click", async ()=>{
-  if(!deferredPrompt) return;
-  deferredPrompt.prompt();
-  await deferredPrompt.userChoice;
-  deferredPrompt = null;
-  document.getElementById("installBtn").hidden = true;
+  if(!deferredPrompt) return; deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; document.getElementById("installBtn").hidden = true;
 });
-window.addEventListener("appinstalled", ()=>{
-  document.getElementById("installBtn").hidden = true;
-  toast("Application installée");
-});
+window.addEventListener("appinstalled", ()=>{ document.getElementById("installBtn").hidden = true; toast("Application installée"); });
 
 function syncAppBadge(count){
-  if("setAppBadge" in navigator){
-    if(count > 0) navigator.setAppBadge(count).catch(()=>{});
-    else navigator.clearAppBadge().catch(()=>{});
-  }
-  if("serviceWorker" in navigator && navigator.serviceWorker.controller){
-    try{ navigator.serviceWorker.controller.postMessage({ type: "set-badge", count: count }); }catch(e){}
-  }
+  if("setAppBadge" in navigator){ if(count > 0) navigator.setAppBadge(count).catch(()=>{}); else navigator.clearAppBadge().catch(()=>{}); }
+  if("serviceWorker" in navigator && navigator.serviceWorker.controller){ try{ navigator.serviceWorker.controller.postMessage({ type: "set-badge", count: count }); }catch(e){} }
   if(count === 0 && api.token){ api.call("POST", "/me/clear-badge").catch(()=>{}); }
 }
 
@@ -2221,187 +1742,93 @@ const notif = {
   load(){ try{ this.items = JSON.parse(localStorage.getItem(NOTIF_KEY) || "[]"); }catch(e){ this.items = []; } },
   save(){ try{ localStorage.setItem(NOTIF_KEY, JSON.stringify(this.items.slice(0, 50))); }catch(e){} },
   add({ id, title, text, url, time }){
-    if(!id) id = "n-" + Date.now();
-    if(this.items.some(n => n.id === id)) return;
+    if(!id) id = "n-" + Date.now(); if(this.items.some(n => n.id === id)) return;
     this.items.unshift({ id, title, text, url: url || "#/emploi", time: time || new Date().toISOString(), read: false });
-    this.items = this.items.slice(0, 50);
-    this.save(); this.renderBadge();
+    this.items = this.items.slice(0, 50); this.save(); this.renderBadge();
     if(this.panelOpen) this.renderPanel();
   },
-  markAllRead(){
-    this.items.forEach(n => n.read = true);
-    this.save(); this.renderBadge();
-    if(this.panelOpen) this.renderPanel();
-    syncAppBadge(this.unreadCount());
-  },
-  markRead(id){
-    const n = this.items.find(x => x.id === id);
-    if(n){ n.read = true; this.save(); this.renderBadge(); }
-    syncAppBadge(this.unreadCount());
-  },
+  markAllRead(){ this.items.forEach(n => n.read = true); this.save(); this.renderBadge(); if(this.panelOpen) this.renderPanel(); syncAppBadge(this.unreadCount()); },
+  markRead(id){ const n = this.items.find(x => x.id === id); if(n){ n.read = true; this.save(); this.renderBadge(); } syncAppBadge(this.unreadCount()); },
   unreadCount(){ return this.items.filter(n => !n.read).length; },
   renderBadge(){
-    const badge = document.getElementById("notifBadge");
-    if(!badge) return;
+    const badge = document.getElementById("notifBadge"); if(!badge) return;
     const count = this.unreadCount();
     if(count === 0) badge.classList.add("hidden");
     else { badge.classList.remove("hidden"); badge.textContent = count > 99 ? "99+" : count; }
     syncAppBadge(count);
   },
   togglePanel(){
-    const root = document.getElementById("notifPanelRoot");
-    if(!root) return;
-    if(this.panelOpen){
-      root.innerHTML = "";
-      document.body.classList.remove("modal-open");
-      this.panelOpen = false;
-      if(this._autoClearTimer){ clearTimeout(this._autoClearTimer); this._autoClearTimer = null; }
-      return;
-    }
-    this.renderPanel();
-    document.body.classList.add("modal-open");
-    this.panelOpen = true;
+    const root = document.getElementById("notifPanelRoot"); if(!root) return;
+    if(this.panelOpen){ root.innerHTML = ""; document.body.classList.remove("modal-open"); this.panelOpen = false; if(this._autoClearTimer){ clearTimeout(this._autoClearTimer); this._autoClearTimer = null; } return; }
+    this.renderPanel(); document.body.classList.add("modal-open"); this.panelOpen = true;
     if(this._autoClearTimer) clearTimeout(this._autoClearTimer);
     this._autoClearTimer = setTimeout(() => {
-      this.items = [];
-      this.save(); this.renderBadge(); syncAppBadge(0);
-      const r = document.getElementById("notifPanelRoot");
-      if(r) r.innerHTML = "";
-      document.body.classList.remove("modal-open");
-      this.panelOpen = false; this._autoClearTimer = null;
-      toast("Notifications effacées");
+      this.items = []; this.save(); this.renderBadge(); syncAppBadge(0);
+      const r = document.getElementById("notifPanelRoot"); if(r) r.innerHTML = "";
+      document.body.classList.remove("modal-open"); this.panelOpen = false; this._autoClearTimer = null; toast("Notifications effacées");
     }, NOTIF_AUTO_CLEAR_MS);
   },
   renderPanel(){
-    const root = document.getElementById("notifPanelRoot");
-    if(!root) return;
+    const root = document.getElementById("notifPanelRoot"); if(!root) return;
     const list = this.items.slice(0, 20);
-    const itemsHtml = list.length
-      ? list.map(n => `
-        <div class="notif-item ${n.read ? "read" : "unread"}" data-notif-id="${esc(n.id)}" data-notif-url="${esc(n.url)}">
-          <span class="notif-dot"></span>
-          <div class="notif-body">
-            <div class="notif-title">${esc(n.title)}</div>
-            <div class="notif-text">${esc(n.text)}</div>
-            <div class="notif-time">${fmtRelativeTime(n.time)}</div>
-          </div>
-        </div>`).join("")
-      : `<div class="notif-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><div>Aucune notification</div></div>`;
-    root.innerHTML = `
-      <div class="notif-panel" id="notifPanel">
-        <div class="notif-panel-head">
-          <h3>Notifications</h3>
-          <div style="display:flex;gap:8px;align-items:center;">
-            ${this.items.length ? `<button id="notifMarkAll">Tout lire</button>` : ""}
-            <button id="notifClose" class="notif-close-btn" aria-label="Fermer">✕</button>
-          </div>
-        </div>
-        <div class="notif-list">${itemsHtml}</div>
-      </div>`;
-    const markAll = root.querySelector("#notifMarkAll");
-    if(markAll) markAll.onclick = (e) => { e.stopPropagation(); this.markAllRead(); };
-    const closeBtn = root.querySelector("#notifClose");
-    if(closeBtn) closeBtn.onclick = (e) => { e.stopPropagation(); this.togglePanel(); };
+    const itemsHtml = list.length ? list.map(n => `<div class="notif-item ${n.read ? "read" : "unread"}" data-notif-id="${esc(n.id)}" data-notif-url="${esc(n.url)}"><span class="notif-dot"></span><div class="notif-body"><div class="notif-title">${esc(n.title)}</div><div class="notif-text">${esc(n.text)}</div><div class="notif-time">${fmtRelativeTime(n.time)}</div></div></div>`).join("") : `<div class="notif-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><div>Aucune notification</div></div>`;
+    root.innerHTML = `<div class="notif-panel" id="notifPanel"><div class="notif-panel-head"><h3>Notifications</h3><div style="display:flex;gap:8px;align-items:center;">${this.items.length ? `<button id="notifMarkAll">Tout lire</button>` : ""}<button id="notifClose" class="notif-close-btn" aria-label="Fermer">✕</button></div></div><div class="notif-list">${itemsHtml}</div></div>`;
+    const markAll = root.querySelector("#notifMarkAll"); if(markAll) markAll.onclick = (e) => { e.stopPropagation(); this.markAllRead(); };
+    const closeBtn = root.querySelector("#notifClose"); if(closeBtn) closeBtn.onclick = (e) => { e.stopPropagation(); this.togglePanel(); };
     root.querySelectorAll("[data-notif-id]").forEach(el => {
-      el.onclick = () => {
-        this.markRead(el.dataset.notifId);
-        if(el.dataset.notifUrl){
-          if(el.dataset.notifUrl.startsWith("#")) location.hash = el.dataset.notifUrl;
-          else window.open(el.dataset.notifUrl, "_blank");
-        }
-        this.togglePanel();
-      };
+      el.onclick = () => { this.markRead(el.dataset.notifId); if(el.dataset.notifUrl){ if(el.dataset.notifUrl.startsWith("#")) location.hash = el.dataset.notifUrl; else window.open(el.dataset.notifUrl, "_blank"); } this.togglePanel(); };
     });
   },
   detectNewDocs(previousIds){
     if(!Array.isArray(previousIds)) return;
-    const ids = previousIds.map(x => typeof x === "string" ? x : x.id);
-    const prevIds = new Set(ids);
-    const fresh = state.schedulePdfs
-      .concat(state.notesPdfs, state.resultatPdfs, state.rattrapagePdfs, state.communiquesPdfs)
-      .filter(d => !prevIds.has(d.id));
+    const ids = previousIds.map(x => typeof x === "string" ? x : x.id); const prevIds = new Set(ids);
+    const fresh = state.schedulePdfs.concat(state.notesPdfs, state.resultatPdfs, state.rattrapagePdfs, state.communiquesPdfs).filter(d => !prevIds.has(d.id));
     const KIND_LABEL = { schedule: "Emploi du temps", notes: "Relevé de notes", resultats: "Résultat de semestre", rattrapage: "Relevé de rattrapage", communiques: "Nouveau communiqué" };
     fresh.forEach(doc => {
-      const label = KIND_LABEL[doc.kind] || "Nouveau document";
-      const suffix = doc.filiere && doc.filiere !== "TOUTES" ? ` · ${doc.filiere} ${doc.niveau}` : "";
-      const url = "#/" + (doc.kind === "schedule" ? "emploi" : doc.kind);
-      this.add({ id: "doc-" + doc.id, title: label, text: doc.titre + suffix, url });
+      const label = KIND_LABEL[doc.kind] || "Nouveau document"; const suffix = doc.filiere && doc.filiere !== "TOUTES" ? ` · ${doc.filiere} ${doc.niveau}` : "";
+      const url = "#/" + (doc.kind === "schedule" ? "emploi" : doc.kind); this.add({ id: "doc-" + doc.id, title: label, text: doc.titre + suffix, url });
     });
   },
   async requestPermission(){
-    if(!("Notification" in window)) return false;
-    if(Notification.permission === "granted") return true;
+    if(!("Notification" in window)) return false; if(Notification.permission === "granted") return true;
     if(Notification.permission === "denied") return false;
-    try{ const p = await Notification.requestPermission(); return p === "granted"; }
-    catch(e){ return false; }
+    try{ const p = await Notification.requestPermission(); return p === "granted"; }catch(e){ return false; }
   }
 };
 
 function fmtRelativeTime(iso){
   const diff = (Date.now() - new Date(iso).getTime()) / 1000;
-  if(diff < 60) return "à l'instant";
-  if(diff < 3600) return `il y a ${Math.floor(diff/60)} min`;
-  if(diff < 86400) return `il y a ${Math.floor(diff/3600)} h`;
-  if(diff < 604800) return `il y a ${Math.floor(diff/86400)} j`;
+  if(diff < 60) return "à l'instant"; if(diff < 3600) return `il y a ${Math.floor(diff/60)} min`;
+  if(diff < 86400) return `il y a ${Math.floor(diff/3600)} h`; if(diff < 604800) return `il y a ${Math.floor(diff/86400)} j`;
   return new Date(iso).toLocaleDateString("fr-FR");
 }
 
-function saveDocsSnapshot(){
-  try{
-    const ids = state.schedulePdfs
-      .concat(state.notesPdfs, state.resultatPdfs, state.rattrapagePdfs, state.communiquesPdfs)
-      .map(d => d.id);
-    localStorage.setItem("inptic.docsSnapshot", JSON.stringify(ids));
-  }catch(e){}
-}
-function loadDocsSnapshot(){
-  try{ return JSON.parse(localStorage.getItem("inptic.docsSnapshot") || "null"); }
-  catch(e){ return null; }
-}
+function saveDocsSnapshot(){ try{ const ids = state.schedulePdfs.concat(state.notesPdfs, state.resultatPdfs, state.rattrapagePdfs, state.communiquesPdfs).map(d => d.id); localStorage.setItem("inptic.docsSnapshot", JSON.stringify(ids)); }catch(e){} }
+function loadDocsSnapshot(){ try{ return JSON.parse(localStorage.getItem("inptic.docsSnapshot") || "null"); }catch(e){ return null; } }
 
 notif.load();
 document.getElementById("notifBtn").addEventListener("click", (e) => { e.stopPropagation(); notif.togglePanel(); });
-document.addEventListener("click", (e) => {
-  const wrap = document.getElementById("notifWrap");
-  if(notif.panelOpen && wrap && !wrap.contains(e.target)) notif.togglePanel();
-});
+document.addEventListener("click", (e) => { const wrap = document.getElementById("notifWrap"); if(notif.panelOpen && wrap && !wrap.contains(e.target)) notif.togglePanel(); });
 document.addEventListener("keydown", (e) => { if(e.key === "Escape" && notif.panelOpen) notif.togglePanel(); });
 notif.renderBadge();
 
 function urlBase64ToUint8Array(base64String){
-  const padding = "=".repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const rawData = atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
-  return outputArray;
+  const padding = "=".repeat((4 - base64String.length % 4) % 4); const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64); const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i); return outputArray;
 }
 
 async function getVapidPublicKey(){
-  try{
-    const r = await fetch(NETLIFY_URL + "/api/push/vapid-public-key", { cache: "no-store" });
-    if(!r.ok) return null;
-    const j = await r.json();
-    return j.publicKey || null;
-  }catch(e){ return null; }
+  try{ const r = await fetch(NETLIFY_URL + "/api/push/vapid-public-key", { cache: "no-store" }); if(!r.ok) return null; const j = await r.json(); return j.publicKey || null; }catch(e){ return null; }
 }
 
 async function subscribePushIfPossible(){
   try{
-    if(!("serviceWorker" in navigator) || !("PushManager" in window)) return;
-    if(Notification.permission !== "granted") return;
-    const reg = await navigator.serviceWorker.ready;
-    let sub = await reg.pushManager.getSubscription();
-    if(sub){
-      await api.call("POST", "/push/subscribe", { json: { subscription: sub.toJSON() } }).catch(()=>{});
-      return;
-    }
-    const publicKey = await getVapidPublicKey();
-    if(!publicKey) return;
-    sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(publicKey)
-    });
+    if(!("serviceWorker" in navigator) || !("PushManager" in window)) return; if(Notification.permission !== "granted") return;
+    const reg = await navigator.serviceWorker.ready; let sub = await reg.pushManager.getSubscription();
+    if(sub){ await api.call("POST", "/push/subscribe", { json: { subscription: sub.toJSON() } }).catch(()=>{}); return; }
+    const publicKey = await getVapidPublicKey(); if(!publicKey) return;
+    sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(publicKey) });
     await api.call("POST", "/push/subscribe", { json: { subscription: sub.toJSON() } });
   }catch(e){ console.warn("Subscribe push failed:", e.message); }
 }
@@ -2413,170 +1840,90 @@ async function enablePushNotifications(){
     if(!("PushManager" in window)){ toast("Push non supporté"); return; }
     const granted = await notif.requestPermission();
     if(!granted){ toast("Permission refusée"); renderPushStatus(); return; }
-    await subscribePushIfPossible();
-    const reg = await navigator.serviceWorker.ready;
+    await subscribePushIfPossible(); const reg = await navigator.serviceWorker.ready;
     const sub = await reg.pushManager.getSubscription();
-    if(sub) toast("Notifications push activées ✅");
-    else toast("Abonnement échoué");
+    if(sub) toast("Notifications push activées ✅"); else toast("Abonnement échoué");
     renderPushStatus();
   }catch(e){ toast("Erreur : " + (e.message || e)); renderPushStatus(); }
 }
 
 async function disablePushNotifications(){
   try{
-    const reg = await navigator.serviceWorker.ready;
-    const sub = await reg.pushManager.getSubscription();
-    if(sub){
-      await api.call("POST", "/push/unsubscribe", { json: { endpoint: sub.endpoint } }).catch(()=>{});
-      await sub.unsubscribe();
-    }
-    toast("Notifications push désactivées");
-    renderPushStatus();
+    const reg = await navigator.serviceWorker.ready; const sub = await reg.pushManager.getSubscription();
+    if(sub){ await api.call("POST", "/push/unsubscribe", { json: { endpoint: sub.endpoint } }).catch(()=>{}); await sub.unsubscribe(); }
+    toast("Notifications push désactivées"); renderPushStatus();
   }catch(e){ toast("Erreur lors de la désactivation"); }
 }
 
 function renderPushStatus(){
-  const el = document.getElementById("pushStatus");
-  if(!el) return;
+  const el = document.getElementById("pushStatus"); if(!el) return;
   const supported = "Notification" in window && "PushManager" in window && "serviceWorker" in navigator;
   const perm = supported ? Notification.permission : "unsupported";
   if(!supported){ el.innerHTML = `<div class="notif-perm-banner">⚠️ Votre navigateur ne supporte pas les notifications push.</div>`; return; }
-  if(perm === "granted"){
-    el.innerHTML = `<div class="notif-perm-banner" style="border-color:rgba(61,220,151,.3); background:rgba(61,220,151,.08); color:var(--teal);">✅ Notifications push activées.<button id="btnDisablePush" style="background:var(--navy-800); color:var(--ink); margin-left:auto;">Désactiver</button></div>`;
-  } else if(perm === "denied"){
-    el.innerHTML = `<div class="notif-perm-banner" style="border-color:rgba(232,99,124,.3); background:rgba(232,99,124,.08); color:var(--red);">❌ Notifications bloquées.</div>`;
-  } else {
-    el.innerHTML = `<div class="notif-perm-banner">🔔 Activez les notifications.<button id="btnEnablePush" style="margin-left:auto;">Activer</button></div>`;
-  }
+  if(perm === "granted"){ el.innerHTML = `<div class="notif-perm-banner" style="border-color:rgba(61,220,151,.3); background:rgba(61,220,151,.08); color:var(--teal);">✅ Notifications push activées.<button id="btnDisablePush" style="background:var(--navy-800); color:var(--ink); margin-left:auto;">Désactiver</button></div>`; }
+  else if(perm === "denied"){ el.innerHTML = `<div class="notif-perm-banner" style="border-color:rgba(232,99,124,.3); background:rgba(232,99,124,.08); color:var(--red);">❌ Notifications bloquées.</div>`; }
+  else { el.innerHTML = `<div class="notif-perm-banner">🔔 Activez les notifications.<button id="btnEnablePush" style="margin-left:auto;">Activer</button></div>`; }
 }
 
 async function askNotifPermissionOnce(){
   try{
-    if(localStorage.getItem(NOTIF_PERM_KEY)) return;
-    if(!("Notification" in window)) return;
+    if(localStorage.getItem(NOTIF_PERM_KEY)) return; if(!("Notification" in window)) return;
     if(Notification.permission === "default"){
-      await new Promise(r => setTimeout(r, 3000));
-      const granted = await notif.requestPermission();
-      localStorage.setItem(NOTIF_PERM_KEY, "1");
-      if(granted){ toast("Notifications activées ✅"); await subscribePushIfPossible(); }
+      await new Promise(r => setTimeout(r, 3000)); const granted = await notif.requestPermission();
+      localStorage.setItem(NOTIF_PERM_KEY, "1"); if(granted){ toast("Notifications activées ✅"); await subscribePushIfPossible(); }
     }
   }catch(e){}
 }
 
 if("serviceWorker" in navigator){
-  window.addEventListener("load", ()=>{
-    navigator.serviceWorker.register("./sw.js").then((reg)=>{
-      document.addEventListener("visibilitychange", ()=>{
-        if(document.visibilityState === "visible") reg.update().catch(()=>{});
-      });
-    }).catch((e) => console.warn("SW register error:", e));
-  });
+  window.addEventListener("load", ()=>{ navigator.serviceWorker.register("./sw.js").then((reg)=>{ document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState === "visible") reg.update().catch(()=>{}); }); }).catch((e) => console.warn("SW register error:", e)); });
   let swRefreshing = false;
-  navigator.serviceWorker.addEventListener("controllerchange", ()=>{
-    if(swRefreshing || !navigator.serviceWorker.controller) return;
-    swRefreshing = true;
-    toast("Mise à jour installée");
-    setTimeout(()=> location.reload(), 900);
-  });
-  navigator.serviceWorker.addEventListener("message", (e)=>{
-    if(e.data && e.data.type === "push-received"){ notif.add(e.data.notif || {}); }
-  });
+  navigator.serviceWorker.addEventListener("controllerchange", ()=>{ if(swRefreshing || !navigator.serviceWorker.controller) return; swRefreshing = true; toast("Mise à jour installée"); setTimeout(()=> location.reload(), 900); });
+  navigator.serviceWorker.addEventListener("message", (e)=>{ if(e.data && e.data.type === "push-received"){ notif.add(e.data.notif || {}); } });
 }
 
 document.getElementById("btnLogoutSidebar").addEventListener("click", logout);
 window.addEventListener("hashchange", ()=>{ if(currentUser) renderRoute(); });
 
-async function refreshData(){
-  if(!currentUser) return;
-  if(!navigator.onLine) return;
-  try{ await loadRemote(); renderRoute(); }catch(e){}
-}
-
 async function clearServerBadge(){
   if(api.token){ try{ await api.call("POST", "/me/clear-badge"); }catch(e){} }
   if("clearAppBadge" in navigator){ try{ await navigator.clearAppBadge(); }catch(e){} }
-  if(navigator.serviceWorker && navigator.serviceWorker.controller){
-    try{ navigator.serviceWorker.controller.postMessage({ type: "clear-badge" }); }catch(e){}
-  }
+  if(navigator.serviceWorker && navigator.serviceWorker.controller){ try{ navigator.serviceWorker.controller.postMessage({ type: "clear-badge" }); }catch(e){} }
 }
 
-window.addEventListener("online", () => {
-  hideOfflineBanner();
-  if(currentUser) syncInBackground();
-});
-window.addEventListener("offline", () => {
-  showOfflineBanner();
-});
+window.addEventListener("online", () => { hideOfflineBanner(); if(currentUser) syncInBackground(); });
+window.addEventListener("offline", () => { showOfflineBanner(); });
 
 document.addEventListener("visibilitychange", () => {
-  if(document.visibilityState === "visible" && currentUser){
-    clearServerBadge();
-    if(navigator.onLine) syncInBackground();
-    else updateOfflineState();
-  }
+  if(document.visibilityState === "visible" && currentUser){ clearServerBadge(); if(navigator.onLine) syncInBackground(); else updateOfflineState(); }
 });
 
 (async function boot(){
   api.load();
-
   const hasToken = !!api.token;
-  let cachedUser = null;
-  let cachedData = null;
-  let cachedYears = null;
-
-  try {
-    cachedUser = lsGet(LS_USER);
-    cachedData = lsGet(LS_DATA);
-    cachedYears = lsGet(LS_YEARS);
-  } catch(e){}
-
+  let cachedUser = null, cachedData = null, cachedYears = null;
+  try { cachedUser = lsGet(LS_USER); cachedData = lsGet(LS_DATA); cachedYears = lsGet(LS_YEARS); } catch(e){}
   if (!cachedUser) { try { cachedUser = await dbGet("user"); } catch(e){} }
   if (!cachedData) { try { cachedData = await dbGet("data"); } catch(e){} }
   if (!cachedYears){ try { cachedYears = await dbGet("lockedYears"); } catch(e){} }
-
   const hasCache = !!(cachedUser && cachedData);
 
   if (hasToken && hasCache) {
-    currentUser = cachedUser;
-    applyData(cachedData);
-    lockedYears = Array.isArray(cachedYears) ? cachedYears : [];
-    showApp();
-    if (navigator.onLine) syncInBackground();
-    else showOfflineBanner();
-    return;
+    currentUser = cachedUser; applyData(cachedData); lockedYears = Array.isArray(cachedYears) ? cachedYears : [];
+    showApp(); if (navigator.onLine) syncInBackground(); else showOfflineBanner(); return;
   }
 
   if (hasToken) {
     if (navigator.onLine) {
-      try {
-        await fetchAndCache();
-        showApp();
-        return;
-      } catch(err) {
-        if (err && err.offline) {
-          showApp();
-          showOfflineBanner();
-          return;
-        }
-        if (err && err.expired) {
-          hideBootScreen();
-          renderAuthScreen();
-          setAuthError("Session expirée. Reconnectez-vous.");
-          return;
-        }
-        hideBootScreen();
-        renderAuthScreen();
-        setAuthError("Erreur de connexion. Réessayez.");
-        return;
+      try { await fetchAndCache(); showApp(); return; } catch(err) {
+        if (err && err.offline) { showApp(); showOfflineBanner(); return; }
+        if (err && err.expired) { hideBootScreen(); renderAuthScreen(); setAuthError("Session expirée. Reconnectez-vous."); return; }
+        hideBootScreen(); renderAuthScreen(); setAuthError("Erreur de connexion. Réessayez."); return;
       }
     }
-    hideBootScreen();
-    renderAuthScreen();
-    return;
+    hideBootScreen(); renderAuthScreen(); return;
   }
-
-  hideBootScreen();
-  renderAuthScreen();
+  hideBootScreen(); renderAuthScreen();
 })();
 
 setTimeout(hideBootScreen, 4000);
