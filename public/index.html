@@ -1127,31 +1127,74 @@ function toast(msg){
   clearTimeout(toast._t); toast._t = setTimeout(()=> el.classList.remove("show"), 2200);
 }
 
-/* ================= SYSTÈME ULTRA SIMPLE POUR VOIR LES PDF ================= */
+/* ================= SYSTÈME UNIVERSEL DE LECTURE PDF ================= */
 async function openRemotePdf(pdf){
   const wasOffline = !navigator.onLine;
   const cacheKey = "/pdf-cache/" + pdf.id;
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-  // 1. EN LIGNE : on ouvre le lien direct dans un nouvel onglet (PC, Android, iOS)
+  // 1. EN LIGNE : ouverture directe et rapide
   if (!wasOffline) {
     const url = NETLIFY_URL + "/api/docs/" + encodeURIComponent(pdf.id) + "/file?token=" + encodeURIComponent(api.token);
     window.open(url, "_blank");
+    
+    // ⚡ ASTUCE : Téléchargement silencieux en arrière-plan pour le mode hors-ligne
+    fetch(url)
+      .then(r => r.blob())
+      .then(blob => {
+        caches.open("campus-pdf-v1").then(c => {
+          c.put(cacheKey, new Response(blob, { headers: { 'Content-Type': 'application/pdf' } }));
+          setTimeout(markCachedPdfs, 1000);
+        });
+      }).catch(()=>{});
+      
     return;
   }
 
-  // 2. HORS-LIGNE : on lit le fichier dans le cache du téléphone et on l'ouvre
+  // 2. HORS-LIGNE
   try {
     const cache = await caches.open("campus-pdf-v1");
     const cached = await cache.match(cacheKey);
+
     if (cached) {
       const blob = await cached.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      window.open(blobUrl, "_blank");
+      const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+      const blobUrl = URL.createObjectURL(pdfBlob);
+
+      if (isIOS) {
+        // Sur iOS : On affiche un lecteur intégré avec un bouton de téléchargement
+        const viewer = document.createElement("div");
+        viewer.id = "pdfOfflineViewer";
+        viewer.style.cssText = "position:fixed; inset:0; z-index:10000; background:#0F1B2D; display:flex; flex-direction:column; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);";
+        viewer.innerHTML = `
+          <div style="padding:12px 14px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.1); background:#16233A; flex-shrink:0; gap:10px;">
+            <span style="font-weight:600; color:#E8ECF2; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;">${esc(pdf.titre || "Document")} (Hors-ligne)</span>
+            <div style="display:flex; gap:8px;">
+              <a href="${blobUrl}" download="${esc(pdf.nomFichier || 'document.pdf')}" style="background:#3DDC97; border:none; color:#0B1524; padding:8px 12px; border-radius:8px; font-weight:600; font-size:13px; text-decoration:none; display:flex; align-items:center;">📥 Télécharger</a>
+              <button id="closeOfflineViewer" style="background:#5B8DEF; border:none; color:#0B1524; padding:8px 16px; border-radius:8px; font-weight:600; font-size:13px; cursor:pointer;">Fermer</button>
+            </div>
+          </div>
+          <iframe src="${blobUrl}" style="flex:1; width:100%; height:100%; border:none; background:#525659;"></iframe>
+        `;
+        document.body.appendChild(viewer);
+        document.body.classList.add("modal-open");
+
+        document.getElementById("closeOfflineViewer").onclick = () => {
+          viewer.remove();
+          document.body.classList.remove("modal-open");
+          URL.revokeObjectURL(blobUrl);
+        };
+      } else {
+        // Sur Android et PC : window.open fonctionne parfaitement
+        window.open(blobUrl, "_blank");
+      }
+
     } else {
-      toast("Document non disponible hors-ligne.");
+      toast("Document non disponible hors-ligne. Connectez-vous une première fois pour le lire.");
     }
   } catch(e) {
-    toast("Erreur d'ouverture.");
+    console.error(e);
+    toast("Erreur d'ouverture hors-ligne.");
   }
 }
 
