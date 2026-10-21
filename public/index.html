@@ -518,90 +518,6 @@
   .notif-close-btn:hover{ color:var(--ink); border-color:var(--blue); background: var(--navy-700); }
   @media (min-width:521px){ .notif-close-btn{display:none;} }
 
-  #pdfMobileViewer{
-    position:fixed; inset:0; z-index:10000;
-    background:#0F1B2D;
-    display:flex; flex-direction:column;
-    padding-top:env(safe-area-inset-top,0px);
-    padding-bottom:env(safe-area-inset-bottom,0px);
-    animation: pdfViewerIn .2s ease-out;
-  }
-  @keyframes pdfViewerIn {
-    from { opacity:0; transform: translateY(20px); }
-    to   { opacity:1; transform: translateY(0); }
-  }
-  #pdfMobileViewer .pdf-viewer-header{
-    padding:12px 14px;
-    display:flex; justify-content:space-between; align-items:center;
-    border-bottom:1px solid rgba(255,255,255,0.1);
-    background:#16233A; flex-shrink:0; gap:10px;
-  }
-  #pdfMobileViewer .pdf-viewer-title{
-    font-weight:600; color:#E8ECF2; font-size:14px;
-    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-    flex:1; min-width:0;
-  }
-  #pdfMobileViewer .pdf-viewer-close{
-    background:#5B8DEF; border:none; color:#0B1524;
-    padding:8px 16px; border-radius:8px; font-weight:600;
-    font-size:13px; cursor:pointer; font-family:inherit; flex-shrink:0;
-  }
-  #pdfMobileViewer .pdf-canvas-container{
-    flex:1;
-    overflow:auto;
-    background:#525659;
-    padding:10px;
-    -webkit-overflow-scrolling:touch;
-    overscroll-behavior:contain;
-    touch-action:pan-x pan-y;
-  }
-  #pdfMobileViewer .pdf-canvas-inner{
-    width:max-content;
-    min-width:100%;
-    margin:0 auto;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap:10px;
-  }
-  #pdfMobileViewer .pdf-page-canvas{
-    display:block;
-    margin:0;
-    background:#fff;
-    box-shadow:0 2px 8px rgba(0,0,0,.3);
-    max-width:none;
-    flex-shrink:0;
-  }
-  #pdfMobileViewer .pdf-zoom-controls{
-    display:flex; align-items:center; gap:6px; flex-shrink:0;
-  }
-  #pdfMobileViewer .pdf-zoom-btn{
-    background:#26374F; border:1px solid rgba(255,255,255,0.12);
-    color:#E8ECF2; width:34px; height:34px; border-radius:8px;
-    font-size:20px; font-weight:600; cursor:pointer;
-    display:flex; align-items:center; justify-content:center;
-    font-family:inherit; line-height:1; padding:0;
-  }
-  #pdfMobileViewer .pdf-zoom-btn:active{ background:#1D2E4A; transform:scale(0.95); }
-  #pdfMobileViewer .pdf-zoom-label{
-    background:transparent; border:1px solid rgba(255,255,255,0.12);
-    color:#93A3BD; padding:0 10px; height:34px; border-radius:8px;
-    font-size:12px; font-weight:600; cursor:pointer;
-    font-family:inherit; min-width:54px;
-  }
-  #pdfMobileViewer .pdf-zoom-label:active{ background:#26374F; color:#E8ECF2; }
-  #pdfMobileViewer .pdf-loading{
-    display:flex; flex-direction:column; align-items:center;
-    justify-content:center; padding:80px 20px; color:#93A3BD;
-  }
-  #pdfMobileViewer .pdf-spinner{
-    width:44px; height:44px;
-    border:3px solid rgba(255,255,255,.15);
-    border-top-color:#5B8DEF; border-radius:50%;
-    animation: pdfSpin .8s linear infinite;
-  }
-  @keyframes pdfSpin { to { transform: rotate(360deg); } }
-
   @media (max-width: 900px){
     .sidebar{transform:translateX(-100%); width:min(280px, 85vw);}
     .sidebar.open{transform:translateX(0);}
@@ -679,8 +595,6 @@
     .pdf-icon{ width: 40px; height: 40px; }
     .pdf-icon svg{ width: 18px; height: 18px; }
     .pdf-num{ width: 22px; height: 22px; font-size: 10px; }
-    #pdfMobileViewer .pdf-zoom-label{ min-width:44px; padding:0 6px; font-size:11px; }
-    #pdfMobileViewer .pdf-viewer-close{ padding:8px 12px; font-size:12px; }
   }
 
   @media (max-width: 520px){
@@ -1031,7 +945,6 @@ async function loadLockedYears(){
    CHARGEMENT RÉSEAU + CACHE
    ========================================================================= */
 async function fetchAndCache(){
-  // ⚡ /me et /data en PARALLÈLE
   const [meRes, dataRes] = await Promise.all([
     api.call("GET", "/me"),
     api.call("GET", "/data")
@@ -1373,56 +1286,25 @@ async function downloadRemotePdf(pdf){
   }
 }
 
-/* ================= PDF.js ================= */
-async function loadPdfJsLib(){
-  if(window.pdfjsLib && window.pdfjsLib.GlobalWorkerOptions && !window.pdfjsLib.GlobalWorkerOptions.workerSrc){
-    delete window.pdfjsLib;
-  }
-  if(window.pdfjsLib) return window.pdfjsLib;
-  return new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-    script.onload = () => {
-      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-      resolve(window.pdfjsLib);
-    };
-    script.onerror = () => reject(new Error("Impossible de charger PDF.js"));
-    document.head.appendChild(script);
-  });
-}
-
-/* ================= OUVERTURE PDF (réseau-first + zoom) ================= */
+/* ================= OUVERTURE DIRECTE PDF (NATIF) ================= */
 async function openRemotePdf(pdf){
   const cacheKey = "/pdf-cache/" + pdf.id;
-  let blobUrl = null;
-  let isFromCache = false;
+  let blob = null;
   const wasOffline = !navigator.onLine;
 
-  // ─── 1. RÉSEAU D'ABORD (conditional GET pour vérifier sans re-télécharger) ───
+  // 1. RÉSEAU D'ABORD (En ligne)
   if (api.token && !wasOffline) {
     try {
       const url = NETLIFY_URL + "/api/docs/" + encodeURIComponent(pdf.id) + "/file?token=" + encodeURIComponent(api.token);
-      const headers = {};
-      if (pdf.taille != null) headers["If-None-Match"] = `"${pdf.id}-${pdf.taille}"`;
-
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 4000);
-      const response = await fetch(url, { signal: controller.signal, headers });
-      clearTimeout(timer);
-
+      const response = await fetch(url);
       if (response.ok) {
-        const blob = await response.blob();
-        const pdfBlob = new Blob([blob], { type: 'application/pdf' });
-        blobUrl = URL.createObjectURL(pdfBlob);
-
+        blob = await response.blob();
+        
+        // Mise en cache automatique
         if ("caches" in window) {
           try {
             const cache = await caches.open("campus-pdf-v1");
-            const existing = await cache.match(cacheKey);
-            if (!existing) {
-              await cache.put(cacheKey, new Response(pdfBlob, { headers: { 'Content-Type': 'application/pdf' } }));
-            }
+            await cache.put(cacheKey, new Response(blob, { headers: { 'Content-Type': 'application/pdf' } }));
           } catch(e){}
         }
       }
@@ -1431,228 +1313,36 @@ async function openRemotePdf(pdf){
     }
   }
 
-  // ─── 2. FALLBACK CACHE ───
-  if (!blobUrl && "caches" in window) {
+  // 2. FALLBACK CACHE (Hors-ligne)
+  if (!blob && "caches" in window) {
     try {
       const cache = await caches.open("campus-pdf-v1");
       const cached = await cache.match(cacheKey);
       if (cached) {
-        const blob = await cached.blob();
-        blobUrl = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
-        isFromCache = true;
+        blob = await cached.blob();
       }
     } catch(e) {}
   }
 
-  if (!blobUrl) { toast("Impossible de charger le document."); return; }
-  isFromCache = isFromCache || wasOffline;
-
-  const existing = document.getElementById("pdfMobileViewer");
-  if(existing) existing.remove();
-
-  const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-
-  // Desktop : ouverture native
-  if(!isMobile){
-    const overlay = document.createElement("div");
-    overlay.id = "pdfLoaderOverlay";
-    overlay.style.cssText = `position:fixed; inset:0; z-index:9999; background:rgba(11,21,36,.92); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; color:#E8ECF2; font-family:inherit;`;
-    overlay.innerHTML = `<div style="width:44px;height:44px;border:3px solid rgba(255,255,255,.15);border-top-color:#5B8DEF;border-radius:50%;animation:pdfSpin .8s linear infinite;"></div><div style="font-size:14px;font-weight:600;">Ouverture du document…</div>`;
-    document.body.appendChild(overlay);
-    window.open(blobUrl, "_blank");
-    setTimeout(() => { const el = document.getElementById("pdfLoaderOverlay"); if(el) el.remove(); }, 1500);
-    return;
+  if (!blob) { 
+    toast("Impossible de charger le document."); 
+    return; 
   }
 
-  // Mobile : viewer custom avec zoom
-  try { history.pushState({ pdfViewer: true }, ""); } catch(e){}
+  // 3. OUVERTURE AVEC LE LECTEUR DU TÉLÉPHONE
+  const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+  const blobUrl = URL.createObjectURL(pdfBlob);
 
-  const viewer = document.createElement("div");
-  viewer.id = "pdfMobileViewer";
-  viewer.innerHTML = `
-    <div class="pdf-viewer-header">
-      <span class="pdf-viewer-title">${esc(pdf.titre || "Document")} ${isFromCache ? "📥 (Hors-ligne)" : ""}</span>
-      <div class="pdf-zoom-controls">
-        <button class="pdf-zoom-btn" id="pdfZoomOut" aria-label="Zoom arrière">−</button>
-        <button class="pdf-zoom-label" id="pdfZoomReset" aria-label="Réinitialiser le zoom">100%</button>
-        <button class="pdf-zoom-btn" id="pdfZoomIn" aria-label="Zoom avant">+</button>
-        <button class="pdf-viewer-close" id="closePdfViewerBtn">Fermer</button>
-      </div>
-    </div>
-    <div id="pdfCanvasContainer" class="pdf-canvas-container">
-      <div id="pdfCanvasInner" class="pdf-canvas-inner">
-        <div class="pdf-loading">
-          <div class="pdf-spinner"></div>
-          <div style="margin-top:12px;font-size:14px;">Chargement du document…</div>
-        </div>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(viewer);
-  document.body.classList.add("modal-open");
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  a.target = "_blank";
+  a.rel = "noopener noreferrer";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 
-  let closed = false;
-  let renderingTask = null;
-  let pdfDoc = null;
-  let renderedCanvases = [];
-
-  // ── ZOOM ──
-  let zoom = 1;
-  const MIN_ZOOM = 0.5;
-  const MAX_ZOOM = 5;
-  let zoomRAF = null;
-
-  const container = document.getElementById("pdfCanvasContainer");
-  const inner = document.getElementById("pdfCanvasInner");
-
-  function applyZoom(){
-    for (const c of renderedCanvases) {
-      const bw = parseFloat(c.dataset.baseWidth || "0");
-      const bh = parseFloat(c.dataset.baseHeight || "0");
-      if (!bw || !bh) continue;
-      c.style.width  = Math.round(bw * zoom) + "px";
-      c.style.height = Math.round(bh * zoom) + "px";
-    }
-    const lbl = document.getElementById("pdfZoomReset");
-    if (lbl) lbl.textContent = Math.round(zoom * 100) + "%";
-  }
-  function setZoom(z){
-    const clamped = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z));
-    if (Math.abs(clamped - zoom) < 0.001) return;
-    zoom = clamped;
-    if (zoomRAF) return;
-    zoomRAF = requestAnimationFrame(() => { zoomRAF = null; applyZoom(); });
-  }
-
-  document.getElementById("pdfZoomIn").onclick  = () => setZoom(zoom * 1.25);
-  document.getElementById("pdfZoomOut").onclick = () => setZoom(zoom / 1.25);
-  document.getElementById("pdfZoomReset").onclick = () => setZoom(1);
-
-  let pinchStartDist = 0, pinchStartZoom = 1, lastTap = 0, wasPinching = false;
-
-  container.addEventListener("touchstart", (e) => {
-    if (e.touches.length === 2) {
-      wasPinching = true;
-      pinchStartDist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      pinchStartZoom = zoom;
-    }
-  }, { passive: true });
-
-  container.addEventListener("touchmove", (e) => {
-    if (e.touches.length === 2 && pinchStartDist > 0) {
-      e.preventDefault();
-      const dist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      setZoom(pinchStartZoom * (dist / pinchStartDist));
-    }
-  }, { passive: false });
-
-  container.addEventListener("touchend", (e) => {
-    if (e.touches.length < 2) pinchStartDist = 0;
-    if (!wasPinching && e.changedTouches.length === 1 && e.touches.length === 0) {
-      const now = Date.now();
-      if (now - lastTap < 300) { setZoom(zoom > 1.1 ? 1 : 2); lastTap = 0; }
-      else { lastTap = now; }
-    }
-    if (e.touches.length === 0) wasPinching = false;
-  });
-
-  container.addEventListener("wheel", (e) => {
-    if (e.ctrlKey || e.metaKey) { e.preventDefault(); setZoom(zoom * (e.deltaY < 0 ? 1.15 : 1/1.15)); }
-  }, { passive: false });
-
-  // ── FERMETURE ──
-  const closeViewer = (fromPopstate) => {
-    if(closed) return;
-    closed = true;
-    try { if(renderingTask && renderingTask.cancel) renderingTask.cancel(); } catch(e){}
-    try { if(pdfDoc) pdfDoc.destroy(); } catch(e){}
-    try { URL.revokeObjectURL(blobUrl); } catch(e){}
-    const el = document.getElementById("pdfMobileViewer");
-    if (el) el.remove();
-    document.body.classList.remove("modal-open");
-    if (!fromPopstate) { try { history.back(); } catch(e){} }
-    setTimeout(() => { try { window.focus(); } catch(e){} }, 60);
-  };
-
-  document.getElementById("closePdfViewerBtn").onclick = () => closeViewer(false);
-  document.addEventListener("keydown", function escH(e){
-    if (e.key === "Escape") { closeViewer(false); document.removeEventListener("keydown", escH); }
-  });
-  window.addEventListener("popstate", function popH(){
-    if (document.getElementById("pdfMobileViewer")) {
-      closeViewer(true); window.removeEventListener("popstate", popH);
-    }
-  });
-
-  // ── RENDU ──
-  (async () => {
-    try {
-      const pdfjsLib = await loadPdfJsLib();
-      const loadingTask = pdfjsLib.getDocument({
-        url: blobUrl, withCredentials: false,
-        disableRange: true, disableStream: true, disableAutoFetch: true
-      });
-      pdfDoc = await loadingTask.promise;
-
-      inner.innerHTML = "";
-      renderedCanvases = [];
-
-      const totalPages = pdfDoc.numPages;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const maxWidth = Math.max(280, container.clientWidth - 20);
-
-      for (let pageNum = 1; pageNum <= totalPages; pageNum++){
-        if (closed) return;
-        const page = await pdfDoc.getPage(pageNum);
-        const baseViewport = page.getViewport({ scale: 1 });
-        const scale = maxWidth / baseViewport.width;
-        const viewport = page.getViewport({ scale });
-
-        const bw = Math.floor(viewport.width);
-        const bh = Math.floor(viewport.height);
-
-        const canvas = document.createElement("canvas");
-        canvas.className = "pdf-page-canvas";
-        canvas.dataset.baseWidth = bw;
-        canvas.dataset.baseHeight = bh;
-        canvas.width  = Math.floor(bw * dpr);
-        canvas.height = Math.floor(bh * dpr);
-        canvas.style.width  = bw + "px";
-        canvas.style.height = bh + "px";
-
-        const ctx = canvas.getContext("2d");
-        ctx.scale(dpr, dpr);
-
-        inner.appendChild(canvas);
-        renderedCanvases.push(canvas);
-
-        renderingTask = page.render({ canvasContext: ctx, viewport });
-        await renderingTask.promise;
-        renderingTask = null;
-      }
-
-      applyZoom();
-      markCachedPdfs();
-    } catch(err){
-      if (closed) return;
-      console.warn("PDF.js a échoué, fallback :", err);
-      container.innerHTML = `
-        <div style="padding:40px 20px;text-align:center;color:#93A3BD; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%;">
-          <div style="font-size:48px;margin-bottom:12px;">📥</div>
-          <p style="margin-bottom:20px;font-size:14px; color:#E8ECF2;">Document enregistré.<br>Disponible hors-ligne.</p>
-          <a href="${blobUrl}" target="_blank" rel="noopener" style="background:#3DDC97;color:#0B1524;padding:12px 20px;border-radius:8px;font-weight:600;text-decoration:none;font-size:14px; display:flex; align-items:center; gap:8px;">
-            👁️ Regarder hors ligne
-          </a>
-        </div>
-      `;
-    }
-  })();
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+  markCachedPdfs();
 }
 
 /* ================= PRELOAD RÉCENT (route-based, sans tri) ================= */
@@ -1680,7 +1370,7 @@ function preloadRecentPdfs(){
   });
 }
 
-/* ================= BADGE "📥" (1 seul cache.keys au lieu de 500 match) ================= */
+/* ================= BADGE "📥" ================= */
 async function markCachedPdfs(){
   if(!("caches" in window) || !api.token) return;
   try {
