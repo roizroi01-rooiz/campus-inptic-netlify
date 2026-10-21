@@ -1286,7 +1286,7 @@ async function downloadRemotePdf(pdf){
   }
 }
 
-/* ================= OUVERTURE DIRECTE PDF (NATIF) ================= */
+/* ================= OUVERTURE AVEC ÉCRAN PRIORITAIRE ================= */
 async function openRemotePdf(pdf){
   const cacheKey = "/pdf-cache/" + pdf.id;
   let blob = null;
@@ -1299,8 +1299,6 @@ async function openRemotePdf(pdf){
       const response = await fetch(url);
       if (response.ok) {
         blob = await response.blob();
-        
-        // Mise en cache automatique
         if ("caches" in window) {
           try {
             const cache = await caches.open("campus-pdf-v1");
@@ -1329,19 +1327,64 @@ async function openRemotePdf(pdf){
     return; 
   }
 
-  // 3. OUVERTURE AVEC LE LECTEUR DU TÉLÉPHONE
+  // 3. CRÉATION DU LECTEUR VISUEL (L'écran de secours demandé)
   const pdfBlob = new Blob([blob], { type: 'application/pdf' });
   const blobUrl = URL.createObjectURL(pdfBlob);
 
-  const a = document.createElement("a");
-  a.href = blobUrl;
-  a.target = "_blank";
-  a.rel = "noopener noreferrer";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+  const existing = document.getElementById("pdfMobileViewer");
+  if(existing) existing.remove();
 
-  setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+  try { history.pushState({ pdfViewer: true }, ""); } catch(e){}
+
+  const viewer = document.createElement("div");
+  viewer.id = "pdfMobileViewer";
+  viewer.innerHTML = `
+    <div class="pdf-viewer-header">
+      <span class="pdf-viewer-title">${esc(pdf.titre || "Document")}</span>
+      <div class="pdf-zoom-controls">
+        <button class="pdf-zoom-btn" style="opacity: 0.5; pointer-events: none;">−</button>
+        <button class="pdf-zoom-label" style="opacity: 0.5; pointer-events: none;">100%</button>
+        <button class="pdf-zoom-btn" style="opacity: 0.5; pointer-events: none;">+</button>
+        <button class="pdf-viewer-close" id="closePdfViewerBtn">Fermer</button>
+      </div>
+    </div>
+    <div class="pdf-canvas-container" style="display:flex; flex-direction:column; align-items:center; justify-content:center; background:#525659;">
+      <div style="padding:40px 20px;text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+        <div style="font-size:48px;margin-bottom:12px;">📄</div>
+        <p style="margin-bottom:20px;font-size:14px; color:#E8ECF2;">
+          ${wasOffline ? "Document enregistré.<br>Disponible hors-ligne." : "Document prêt.<br>Disponible en ligne."}
+        </p>
+        <a href="${blobUrl}" target="_blank" rel="noopener" style="background:#3DDC97;color:#0B1524;padding:12px 20px;border-radius:8px;font-weight:600;text-decoration:none;font-size:14px; display:flex; align-items:center; gap:8px;">
+          👁️ ${wasOffline ? "Regarder hors ligne" : "Regarder en ligne"}
+        </a>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(viewer);
+  document.body.classList.add("modal-open");
+
+  let closed = false;
+
+  // 4. FERMETURE DU LECTEUR
+  const closeViewer = (fromPopstate) => {
+    if(closed) return;
+    closed = true;
+    const el = document.getElementById("pdfMobileViewer");
+    if (el) el.remove();
+    document.body.classList.remove("modal-open");
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 60000); // Laisse 1 min pour que le téléphone ouvre le fichier
+    if (!fromPopstate) { try { history.back(); } catch(e){} }
+  };
+
+  document.getElementById("closePdfViewerBtn").onclick = () => closeViewer(false);
+  
+  window.addEventListener("popstate", function popH(){
+    if (document.getElementById("pdfMobileViewer")) {
+      closeViewer(true); 
+      window.removeEventListener("popstate", popH);
+    }
+  });
+
   markCachedPdfs();
 }
 
