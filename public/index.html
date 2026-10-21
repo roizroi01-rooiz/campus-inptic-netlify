@@ -1286,50 +1286,43 @@ async function downloadRemotePdf(pdf){
   }
 }
 
-/* ================= OUVERTURE AVEC ÉCRAN PRIORITAIRE ================= */
+/* ================= OUVERTURE RAPIDE ET UNIVERSELLE (iOS / Android / PC) ================= */
 async function openRemotePdf(pdf){
-  const cacheKey = "/pdf-cache/" + pdf.id;
-  let blob = null;
   const wasOffline = !navigator.onLine;
+  const cacheKey = "/pdf-cache/" + pdf.id;
+  let finalUrl = null;
 
-  // 1. RÉSEAU D'ABORD (En ligne)
-  if (api.token && !wasOffline) {
-    try {
-      const url = NETLIFY_URL + "/api/docs/" + encodeURIComponent(pdf.id) + "/file?token=" + encodeURIComponent(api.token);
-      const response = await fetch(url);
-      if (response.ok) {
-        blob = await response.blob();
-        if ("caches" in window) {
-          try {
-            const cache = await caches.open("campus-pdf-v1");
-            await cache.put(cacheKey, new Response(blob, { headers: { 'Content-Type': 'application/pdf' } }));
-          } catch(e){}
-        }
-      }
-    } catch(e) {
-      console.warn("Réseau KO, fallback cache:", e.message);
-    }
-  }
-
-  // 2. FALLBACK CACHE (Hors-ligne)
-  if (!blob && "caches" in window) {
+  if (!wasOffline) {
+    // EN LIGNE : On donne directement le lien Netlify (ultra rapide).
+    // Le téléphone ouvre son lecteur natif sans télécharger le fichier dans l'app.
+    finalUrl = NETLIFY_URL + "/api/docs/" + encodeURIComponent(pdf.id) + "/file?token=" + encodeURIComponent(api.token);
+    
+    // En arrière-plan, on met en cache pour plus tard (hors-ligne)
+    fetch(finalUrl)
+      .then(r => r.blob())
+      .then(blob => {
+        caches.open("campus-pdf-v1").then(c => c.put(cacheKey, new Response(blob, { headers: { 'Content-Type': 'application/pdf' } })));
+      }).catch(()=>{});
+  } else {
+    // HORS-LIGNE : On utilise le Base64 (Data URI) pour forcer iOS à l'ouvrir.
     try {
       const cache = await caches.open("campus-pdf-v1");
       const cached = await cache.match(cacheKey);
       if (cached) {
-        blob = await cached.blob();
+        const blob = await cached.blob();
+        finalUrl = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.readAsDataURL(blob);
+        });
       }
     } catch(e) {}
   }
 
-  if (!blob) { 
-    toast("Impossible de charger le document."); 
+  if (!finalUrl) { 
+    toast("Document introuvable."); 
     return; 
   }
-
-  // 3. CRÉATION DU LECTEUR VISUEL (L'écran de secours demandé)
-  const pdfBlob = new Blob([blob], { type: 'application/pdf' });
-  const blobUrl = URL.createObjectURL(pdfBlob);
 
   const existing = document.getElementById("pdfMobileViewer");
   if(existing) existing.remove();
@@ -1342,21 +1335,18 @@ async function openRemotePdf(pdf){
     <div class="pdf-viewer-header">
       <span class="pdf-viewer-title">${esc(pdf.titre || "Document")}</span>
       <div class="pdf-zoom-controls">
-        <button class="pdf-zoom-btn" style="opacity: 0.5; pointer-events: none;">−</button>
-        <button class="pdf-zoom-label" style="opacity: 0.5; pointer-events: none;">100%</button>
-        <button class="pdf-zoom-btn" style="opacity: 0.5; pointer-events: none;">+</button>
         <button class="pdf-viewer-close" id="closePdfViewerBtn">Fermer</button>
       </div>
     </div>
     <div class="pdf-canvas-container" style="display:flex; flex-direction:column; align-items:center; justify-content:center; background:#525659;">
       <div style="padding:40px 20px;text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-        <div style="font-size:48px;margin-bottom:12px;">📄</div>
+        <div style="font-size:48px;margin-bottom:12px;">${wasOffline ? "📥" : "📄"}</div>
         <p style="margin-bottom:20px;font-size:14px; color:#E8ECF2;">
           ${wasOffline ? "Document enregistré.<br>Disponible hors-ligne." : "Document prêt.<br>Disponible en ligne."}
         </p>
-        <a href="${blobUrl}" target="_blank" rel="noopener" style="background:#3DDC97;color:#0B1524;padding:12px 20px;border-radius:8px;font-weight:600;text-decoration:none;font-size:14px; display:flex; align-items:center; gap:8px;">
+        <button id="btnOpenNativePdf" style="background:#3DDC97;color:#0B1524;padding:12px 20px;border-radius:8px;font-weight:600;text-decoration:none;font-size:14px; display:flex; align-items:center; gap:8px; border:none; cursor:pointer;">
           👁️ ${wasOffline ? "Regarder hors ligne" : "Regarder en ligne"}
-        </a>
+        </button>
       </div>
     </div>
   `;
@@ -1365,19 +1355,21 @@ async function openRemotePdf(pdf){
 
   let closed = false;
 
-  // 4. FERMETURE DU LECTEUR
+  document.getElementById("btnOpenNativePdf").onclick = () => {
+    // Ouvre le document (lien direct ou Base64) avec le lecteur du téléphone
+    window.open(finalUrl, '_blank') || (window.location.href = finalUrl);
+  };
+
   const closeViewer = (fromPopstate) => {
     if(closed) return;
     closed = true;
     const el = document.getElementById("pdfMobileViewer");
     if (el) el.remove();
     document.body.classList.remove("modal-open");
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 60000); // Laisse 1 min pour que le téléphone ouvre le fichier
     if (!fromPopstate) { try { history.back(); } catch(e){} }
   };
 
   document.getElementById("closePdfViewerBtn").onclick = () => closeViewer(false);
-  
   window.addEventListener("popstate", function popH(){
     if (document.getElementById("pdfMobileViewer")) {
       closeViewer(true); 
@@ -1385,7 +1377,7 @@ async function openRemotePdf(pdf){
     }
   });
 
-  markCachedPdfs();
+  if (!wasOffline) markCachedPdfs();
 }
 
 /* ================= PRELOAD RÉCENT (route-based, sans tri) ================= */
