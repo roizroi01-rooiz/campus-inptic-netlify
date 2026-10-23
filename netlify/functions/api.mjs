@@ -7,9 +7,10 @@ import webpush from "web-push";
 
 const scryptAsync = promisify(scrypt);
 
-const FILIERES = ["GI", "RT", "MTIC"]; // ← 3ème filière ajoutée
-const NIVEAUX = ["L1", "L2", "L3"];
-const KINDS = ["schedule", "notes", "resultats", "rattrapage", "communiques"];
+// ⚠️ Modification : Seules les filières et niveaux demandés sont conservés
+const FILIERES = ["GI"];
+const NIVEAUX = ["L1"];
+const KINDS = ["schedule", "notes"];
 const MAX_PDF = 5 * 1024 * 1024;
 const TOKEN_TTL = 30 * 24 * 3600;
 const ANNEE_DEFAUT = "2026-2027";
@@ -27,7 +28,7 @@ class HttpError extends Error {
 }
 
 /* ============================================================
-   CORS — Nécessaire pour l'application mobile Capacitor
+   CORS
    ============================================================ */
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -59,7 +60,6 @@ const emailKey = (email) => "emails/" + sha256(email).toString("hex");
 
 /* ============================================================
    ⚡ INDEX DES DOCS
-   Permet à /api/data de faire 1 lecture au lieu de 500.
    ============================================================ */
 const DOCS_INDEX_KEY = "docs-index";
 const INDEX_TTL = 30_000;
@@ -326,7 +326,7 @@ const visibleDoc = (d, st) =>
 async function getData(me, s) {
   const [students, docs] = await Promise.all([
     me.role === "admin" ? listAll(s, "students/") : Promise.resolve([me.student]),
-    getDocsFromIndex(s)   // ⚡ 1 lecture au lieu de N
+    getDocsFromIndex(s)
   ]);
   const visible = me.role === "admin" ? docs : docs.filter((d) => visibleDoc(d, me.student));
   visible.sort((a, b) => String(b.dateAjout).localeCompare(String(a.dateAjout)));
@@ -440,21 +440,6 @@ async function purgeYear(s, annee) {
   });
 }
 
-/* ---------- SUPPRESSION DE TOUS LES COMMUNIQUÉS ---------- */
-
-async function purgeCommuniques(s) {
-  const docs = await listAll(s, "docs/");
-  const coms = docs.filter(d => d.kind === "communiques");
-  let count = 0;
-  await Promise.all(coms.map(async (doc) => {
-    await s.delete("docs/" + doc.id);
-    await s.delete("files/" + doc.id);
-    count++;
-  }));
-  await indexRebuild(s);
-  return json({ ok: true, count, message: `${count} communiqué(s) supprimé(s).` });
-}
-
 /* ---------- documents ---------- */
 
 async function uploadDoc(req, s, url) {
@@ -488,8 +473,7 @@ async function uploadDoc(req, s, url) {
   }
 
   if (!KINDS.includes(kind)) throw new HttpError(400, "Type de document invalide.");
-  if (kind === "communiques") { filiere = "TOUTES"; niveau = "TOUS"; annee = "TOUTES"; }
-  else if (!FILIERES.includes(filiere) || !NIVEAUX.includes(niveau))
+  if (!FILIERES.includes(filiere) || !NIVEAUX.includes(niveau))
     throw new HttpError(400, "Filière ou niveau invalide.");
   if (!annee) annee = ANNEE_DEFAUT;
 
@@ -500,20 +484,16 @@ async function uploadDoc(req, s, url) {
   if (!mimeType) {
     throw new HttpError(400, "Format non supporté. Utilisez un PDF ou une image (JPG, PNG, GIF, WebP).");
   }
-  if (kind !== "communiques" && mimeType !== "application/pdf") {
+  if (mimeType !== "application/pdf") {
     throw new HttpError(400, "Le fichier doit être un PDF.");
   }
 
-  nomFichier = clean(nomFichier, 200) || (mimeType === "application/pdf" ? "document.pdf" : "image");
+  nomFichier = clean(nomFichier, 200) || "document.pdf";
   commentaire = clean(commentaire, 1000);
   titre = clean(titre, 200);
 
   if (!titre) {
-    if (kind === "communiques") {
-      titre = "Communiqué du " + new Date().toLocaleDateString("fr-FR");
-    } else {
-      titre = nomFichier.replace(/\.(pdf|jpg|jpeg|png|gif|webp)$/i, "");
-    }
+    titre = nomFichier.replace(/\.(pdf|jpg|jpeg|png|gif|webp)$/i, "");
   }
 
   const id = randomUUID();
@@ -526,12 +506,12 @@ async function uploadDoc(req, s, url) {
   };
   await s.set("files/" + id, buf);
   await s.setJSON("docs/" + id, meta);
-  await indexAdd(s, meta);   // ⚡ Maintient l'index à jour
+  await indexAdd(s, meta);
 
   await pushToMatching(s, {
     kind, filiere, niveau,
     title: docKindLabel(kind),
-    body: (commentaire || titre) + (kind !== "communiques" ? ` · ${filiere} ${niveau}` : ""),
+    body: (commentaire || titre) + ` · ${filiere} ${niveau}`,
     url: "/#/" + (kind === "schedule" ? "emploi" : kind)
   });
 
@@ -541,10 +521,7 @@ async function uploadDoc(req, s, url) {
 function docKindLabel(kind) {
   return {
     schedule: "Nouvel emploi du temps",
-    notes: "Nouveau relevé de notes",
-    resultats: "Nouveau résultat de semestre",
-    rattrapage: "Nouveau relevé de rattrapage",
-    communiques: "Nouveau communiqué"
+    notes: "Nouveau cours"
   }[kind] || "Nouveau document";
 }
 
@@ -624,7 +601,7 @@ async function deleteDoc(s, id) {
   if (!d) throw new HttpError(404, "Document introuvable.");
   await s.delete("docs/" + id);
   await s.delete("files/" + id);
-  await indexRemove(s, id);   // ⚡ Maintient l'index à jour
+  await indexRemove(s, id);
   return json({ ok: true });
 }
 
@@ -732,7 +709,6 @@ async function pushToMatching(s, payload) {
   const subs = await listAll(s, "pushsubs/");
   const targets = subs.filter(sub => {
     if (sub.role === "admin") return true;
-    if (payload.kind === "communiques") return true;
     if (sub.filiere === payload.filiere && sub.niveau === payload.niveau) return true;
     return false;
   });
@@ -857,11 +833,6 @@ export default async (req) => {
     if (seg[0] === "admin" && seg[1] === "purge-year" && seg.length === 3) {
       requireAdmin(me);
       if (m === "DELETE") return await purgeYear(s, seg[2]);
-    }
-
-    if (seg[0] === "admin" && seg[1] === "purge-communiques" && seg.length === 2) {
-      requireAdmin(me);
-      if (m === "DELETE") return await purgeCommuniques(s);
     }
 
     if (seg[0] === "admin" && seg[1] === "lock-year" && seg.length === 3) {

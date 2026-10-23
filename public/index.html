@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0F1B2D">
-<meta name="description" content="Plateforme de gestion universitaire pour les filières GI, RT et MTIC, de la L1 à la L3.">
+<meta name="description" content="Plateforme de gestion universitaire pour la filière Génie Informatique (L1).">
 <title>INPTIC — Gestion universitaire</title>
 <meta name="color-scheme" content="dark">
 <meta name="mobile-web-app-capable" content="yes">
@@ -236,8 +236,6 @@
 
   .tag{display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:20px; font-size:var(--fs-xs); font-weight:600; white-space:nowrap;}
   .tag.gi{background:var(--teal-dim); color:var(--teal); border: 1px solid rgba(61,220,151,0.2);}
-  .tag.rt{background:var(--gold-dim); color:var(--gold); border: 1px solid rgba(242,184,75,0.2);}
-  .tag.mtic{background:var(--purple-dim); color:var(--purple); border: 1px solid rgba(167,139,250,0.2);}
 
   .empty-state{text-align:center; padding:var(--sp-8) var(--sp-4); color:var(--ink-faint);}
   .empty-state svg{width:34px; height:34px; margin-bottom:12px; opacity:.6;}
@@ -649,29 +647,17 @@
       <img src="inptic.jpg" alt="INPTIC" class="brand-mark">
       <div class="brand-text">
         <strong>INPTIC</strong>
-        <span>GI, RT &amp; MTIC · L1 – L3</span>
+        <span>Génie Informatique · L1</span>
       </div>
     </div>
     <nav class="nav" id="nav">
       <a href="#/emploi" data-route="emploi">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 3v3M16 3v3"/></svg>
-        Emploi du temps
+        Programme
       </a>
       <a href="#/notes" data-route="notes">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v5h5"/><path d="M8.5 13.5h7M8.5 17h4.5"/></svg>
-        Relevé de notes
-      </a>
-      <a href="#/rattrapage" data-route="rattrapage">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
-        Rattrapage
-      </a>
-      <a href="#/resultats" data-route="resultats">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-        Résultat des semestres
-      </a>
-      <a href="#/communiques" data-route="communiques">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"/></svg>
-        Communiqués
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        Cours
       </a>
       <a href="#/etudiants" data-route="etudiants" data-admin-only="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.4"/><path d="M2.5 20c0-3.6 2.9-6.2 6.5-6.2s6.5 2.6 6.5 6.2"/><path d="M16 4.3c1.7.5 2.9 2 2.9 3.9 0 1.8-1.2 3.4-2.9 3.9"/><path d="M21.5 20c0-3-2-5.3-4.8-6"/></svg>
@@ -694,7 +680,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
       </button>
       <div>
-        <h1 id="pageTitle">Emploi du temps</h1>
+        <h1 id="pageTitle">Programme</h1>
         <div id="pageSub"></div>
       </div>
       <div class="topbar-right">
@@ -850,13 +836,13 @@ const api = {
 };
 
 const ROLE_LABEL = {admin:"Admin", etudiant:"Étudiant", enseignant:"Enseignant"};
-const FILIERES = ["GI","RT","MTIC"];
-const NIVEAUX = ["L1","L2","L3"];
-const FILIERE_LABEL = { GI: "Génie Informatique", RT: "Réseaux &amp; Télécommunications", MTIC: "Management &amp; TIC" };
+const FILIERES = ["GI"];
+const NIVEAUX = ["L1"];
+const FILIERE_LABEL = { GI: "Génie Informatique" };
 const ANNEES_UNIV = ["2026-2027","2027-2028","2028-2029","2029-2030","2030-2031","2031-2032","2032-2033","2033-2034","2034-2035","2035-2036","2036-2037","2037-2038","2038-2039","2039-2040","2040-2041","2041-2042","2042-2043","2043-2044","2044-2045","2045-2046","2046-2047","2047-2048","2048-2049","2049-2050"];
 const ANNEE_DEFAUT = "2026-2027";
 
-function seedState(){ return { students: [], schedulePdfs: [], notesPdfs: [], resultatPdfs: [], rattrapagePdfs: [], communiquesPdfs: [] }; }
+function seedState(){ return { students: [], schedulePdfs: [], notesPdfs: [] }; }
 let state = seedState();
 let lockedYears = [];
 
@@ -867,9 +853,6 @@ function applyData(d){
   const byKind = k => docs.filter(x => x.kind === k);
   state.schedulePdfs    = byKind("schedule");
   state.notesPdfs       = byKind("notes");
-  state.resultatPdfs    = byKind("resultats");
-  state.rattrapagePdfs  = byKind("rattrapage");
-  state.communiquesPdfs = byKind("communiques");
 }
 
 async function loadLockedYears(){
@@ -939,7 +922,7 @@ let authSuccessMsg = "";
 const AUTH_LOGO = `<img src="inptic.jpg" alt="INPTIC">`;
 
 function authHeader(){
-  return `<div class="auth-logo">${AUTH_LOGO}<div><strong>INPTIC</strong><span>GI, RT &amp; MTIC · L1 – L3</span></div></div>
+  return `<div class="auth-logo">${AUTH_LOGO}<div><strong>INPTIC</strong><span>Génie Informatique · L1</span></div></div>
   <div class="auth-tabs">
     <button class="auth-tab ${authMode==='login'?'active':''}" data-authtab="login">Connexion</button>
     <button class="auth-tab ${authMode==='signup'?'active':''}" data-authtab="signup">Inscription</button>
@@ -1086,8 +1069,6 @@ function syncFiltersForStudent(){
       const annee = student.annee || ANNEE_DEFAUT;
       uiState.emploi.filiere = student.filiere; uiState.emploi.niveau = student.niveau; uiState.emploi.annee = annee;
       uiState.notes.filiere = student.filiere; uiState.notes.niveau = student.niveau; uiState.notes.annee = annee;
-      uiState.resultats.filiere = student.filiere; uiState.resultats.niveau = student.niveau; uiState.resultats.annee = annee;
-      uiState.rattrapage.filiere = student.filiere; uiState.rattrapage.niveau = student.niveau; uiState.rattrapage.annee = annee;
     }
   }
 }
@@ -1133,12 +1114,10 @@ async function openRemotePdf(pdf){
   const cacheKey = "/pdf-cache/" + pdf.id;
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-  // 1. EN LIGNE : ouverture directe et rapide
   if (!wasOffline) {
     const url = NETLIFY_URL + "/api/docs/" + encodeURIComponent(pdf.id) + "/file?token=" + encodeURIComponent(api.token);
     window.open(url, "_blank");
     
-    // ⚡ ASTUCE : Téléchargement silencieux en arrière-plan pour le mode hors-ligne
     fetch(url)
       .then(r => r.blob())
       .then(blob => {
@@ -1151,7 +1130,6 @@ async function openRemotePdf(pdf){
     return;
   }
 
-  // 2. HORS-LIGNE
   try {
     const cache = await caches.open("campus-pdf-v1");
     const cached = await cache.match(cacheKey);
@@ -1162,7 +1140,6 @@ async function openRemotePdf(pdf){
       const blobUrl = URL.createObjectURL(pdfBlob);
 
       if (isIOS) {
-        // Sur iOS : On affiche un lecteur intégré avec un bouton de téléchargement
         const viewer = document.createElement("div");
         viewer.id = "pdfOfflineViewer";
         viewer.style.cssText = "position:fixed; inset:0; z-index:10000; background:#0F1B2D; display:flex; flex-direction:column; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);";
@@ -1185,7 +1162,6 @@ async function openRemotePdf(pdf){
           URL.revokeObjectURL(blobUrl);
         };
       } else {
-        // Sur Android et PC : window.open fonctionne parfaitement
         window.open(blobUrl, "_blank");
       }
 
@@ -1241,9 +1217,6 @@ function preloadRecentPdfs(){
   let list;
   if (route === "emploi") list = state.schedulePdfs;
   else if (route === "notes") list = state.notesPdfs;
-  else if (route === "resultats") list = state.resultatPdfs;
-  else if (route === "rattrapage") list = state.rattrapagePdfs;
-  else if (route === "communiques") list = state.communiquesPdfs;
   else return;
   list.slice(0, 3).forEach(pdf => {
     const url = NETLIFY_URL + "/api/docs/" + encodeURIComponent(pdf.id) + "/file?token=" + encodeURIComponent(api.token);
@@ -1340,13 +1313,10 @@ function studentModal(existing){
 function pdfUploadModal(kind, filiere, niveau, annee){
   const MAX_BYTES = MAX_PDF_BYTES;
   let cfg;
-  if (kind === "notes") cfg = {title:"Ajouter un relevé de notes", placeholder:"ex. Relevé de notes — Semestre 1", doneMsg:"Relevé de notes ajouté"};
-  else if (kind === "resultats") cfg = {title:"Ajouter un résultat de semestre", placeholder:"ex. Résultat Semestre 1", doneMsg:"Résultat ajouté"};
-  else if (kind === "rattrapage") cfg = {title:"Ajouter un relevé de rattrapage", placeholder:"ex. Relevé de rattrapage — Semestre 1", doneMsg:"Relevé de rattrapage ajouté"};
-  else if (kind === "communiques") cfg = {title:"Ajouter un communiqué", placeholder:"ex. Réunion de rentrée 2026", doneMsg:"Communiqué publié"};
-  else cfg = {title:"Ajouter l'emploi du temps", placeholder:"ex. Emploi du temps — Semestre 1", doneMsg:"Emploi du temps ajouté"};
+  if (kind === "notes") cfg = {title:"Ajouter un cours", placeholder:"ex. Cours Algorithmique - Chapitre 1", doneMsg:"Cours ajouté"};
+  else cfg = {title:"Ajouter un programme", placeholder:"ex. Programme — Semestre 1", doneMsg:"Programme ajouté"};
 
-  const subTitle = kind === "communiques" ? `<p class="modal-sub"> Visible par <strong>tous les étudiants</strong></p>` : `<p class="modal-sub">${FILIERE_LABEL[filiere]} · ${niveau} · ${annee}</p>`;
+  const subTitle = `<p class="modal-sub">${FILIERE_LABEL[filiere]} · ${niveau} · ${annee}</p>`;
 
   openModal(`
     <h3>${cfg.title}</h3>
@@ -1396,9 +1366,8 @@ function purgeYearModal(annee) {
     <div style="background:rgba(232,99,124,.1); border:1px solid rgba(232,99,124,.3); padding:12px; border-radius:8px; margin-bottom:18px; font-size:13px; color:var(--red);">
       <strong>Attention :</strong> Cette action va supprimer :
       <ul style="margin:8px 0 0 20px; padding:0;">
-        <li>Tous les étudiants</li><li>Tous les emplois du temps</li>
-        <li>Tous les relevés de notes</li><li>Tous les relevés de rattrapage</li>
-        <li>Tous les résultats de semestres</li>
+        <li>Tous les étudiants</li><li>Tous les programmes</li>
+        <li>Tous les cours</li>
       </ul>
       <br>L'année sera ensuite <strong>verrouillée</strong>.
       <br><br>Cette action est <strong>irréversible</strong>.
@@ -1428,44 +1397,10 @@ function purgeYearModal(annee) {
   });
 }
 
-function purgeCommuniquesModal() {
-  const count = state.communiquesPdfs.length;
-  openModal(`
-    <h3 style="color:var(--red); margin-bottom:6px;">⚠️ Supprimer tous les communiqués</h3>
-    <p class="modal-sub">Vous êtes sur le point de supprimer <strong>définitivement</strong> les <strong>${count}</strong> communiqué(s) publié(s).</p>
-    <div style="background:rgba(232,99,124,.1); border:1px solid rgba(232,99,124,.3); padding:12px; border-radius:8px; margin-bottom:18px; font-size:13px; color:var(--red);">
-      <strong>Attention :</strong> Cette action est <strong>irréversible</strong>.<br>
-      Tous les PDF publiés dans <strong>Communiqués</strong> seront supprimés pour <strong>tous les étudiants</strong>.
-    </div>
-    <div class="field">
-      <label>Pour confirmer, tapez <strong>SUPPRIMER</strong> ci-dessous :</label>
-      <input class="text-input" id="confirmPurgeComsInput" placeholder="SUPPRIMER" autocomplete="off">
-    </div>
-    <div class="modal-actions">
-      <button class="btn secondary" id="f_cancel">Annuler</button>
-      <button class="btn danger" id="btnConfirmPurgeComs" style="padding:9px 15px; font-size:13.5px;" disabled>Supprimer tout</button>
-    </div>
-  `, (root) => {
-    const input = root.querySelector("#confirmPurgeComsInput");
-    const btn = root.querySelector("#btnConfirmPurgeComs");
-    input.addEventListener("input", () => { btn.disabled = input.value.trim().toUpperCase() !== "SUPPRIMER"; });
-    root.querySelector("#f_cancel").onclick = closeModal;
-    btn.onclick = async () => {
-      btn.disabled = true; btn.textContent = "Suppression en cours…";
-      try {
-        const r = await api.call("DELETE", "/admin/purge-communiques");
-        closeModal(); await loadRemote(); renderRoute(); toast(`✅ ${r.count} communiqué(s) supprimé(s)`);
-      } catch (err) { btn.disabled = false; btn.textContent = "Supprimer tout"; toast(err.message || "Erreur"); }
-    };
-  });
-}
-
 const uiState = {
   students:{filiere:"", niveau:"", q:""},
   notes:{filiere:"GI", niveau:"L1", annee:ANNEE_DEFAUT},
-  resultats:{filiere:"GI", niveau:"L1", annee:ANNEE_DEFAUT},
-  emploi:{filiere:"GI", niveau:"L1", annee:ANNEE_DEFAUT},
-  rattrapage:{filiere:"GI", niveau:"L1", annee:ANNEE_DEFAUT}
+  emploi:{filiere:"GI", niveau:"L1", annee:ANNEE_DEFAUT}
 };
 
 function renderStudents(){
@@ -1524,36 +1459,73 @@ function pdfRows(list, kind, admin){
 function renderNotes(){
   const u = uiState.notes; const admin = isAdmin();
   const list = state.notesPdfs.filter(p => p.filiere===u.filiere && p.niveau===u.niveau && (p.annee || ANNEE_DEFAUT) === u.annee).sort((a,b) => b.dateAjout.localeCompare(a.dateAjout));
-  const filterBar = admin ? `<div class="filter-bar"><select id="fNoteFiliere">${FILIERES.map(f=>`<option value="${f}" ${u.filiere===f?"selected":""}>${FILIERE_LABEL[f]}</option>`).join("")}</select><select id="fNoteNiveau">${NIVEAUX.map(n=>`<option value="${n}" ${u.niveau===n?"selected":""}>${n}</option>`).join("")}</select><select id="fNoteAnnee">${ANNEES_UNIV.map(a=>`<option value="${a}" ${u.annee===a?"selected":""}>${a}</option>`).join("")}</select><div style="margin-left:auto; display:flex; gap:10px;"><button class="btn danger" id="btnPurgeYear">⚠️ Fin d'année</button><button class="btn" id="btnAddNotePdf">+ Ajouter un relevé</button></div></div>` : `<div class="filter-bar"><span class="locked-filter">Filière &amp; niveau : <strong>${FILIERE_LABEL[u.filiere]} · ${u.niveau} · ${u.annee}</strong></span></div>`;
-  return `${filterBar}<div class="panel"><div class="panel-head"><div><h2>${FILIERE_LABEL[u.filiere]} · ${u.niveau} · ${u.annee}</h2></div></div>${list.length ? pdfRows(list, "notes", admin) : emptyState(admin ? "Aucun relevé de notes déposé." : "Aucun relevé disponible.")}</div>`;
-}
-
-function renderRattrapage(){
-  const u = uiState.rattrapage; const admin = isAdmin();
-  const list = state.rattrapagePdfs.filter(p => p.filiere===u.filiere && p.niveau===u.niveau && (p.annee || ANNEE_DEFAUT) === u.annee).sort((a,b) => b.dateAjout.localeCompare(a.dateAjout));
-  const filterBar = admin ? `<div class="filter-bar"><select id="fRatFiliere">${FILIERES.map(f=>`<option value="${f}" ${u.filiere===f?"selected":""}>${FILIERE_LABEL[f]}</option>`).join("")}</select><select id="fRatNiveau">${NIVEAUX.map(n=>`<option value="${n}" ${u.niveau===n?"selected":""}>${n}</option>`).join("")}</select><select id="fRatAnnee">${ANNEES_UNIV.map(a=>`<option value="${a}" ${u.annee===a?"selected":""}>${a}</option>`).join("")}</select><div style="margin-left:auto; display:flex; gap:10px;"><button class="btn danger" id="btnPurgeYear">⚠️ Fin d'année</button><button class="btn" id="btnAddRattrapagePdf">+ Ajouter un rattrapage</button></div></div>` : `<div class="filter-bar"><span class="locked-filter">Filière &amp; niveau : <strong>${FILIERE_LABEL[u.filiere]} · ${u.niveau} · ${u.annee}</strong></span></div>`;
-  return `${filterBar}<div class="panel"><div class="panel-head"><div><h2>${FILIERE_LABEL[u.filiere]} · ${u.niveau} · ${u.annee}</h2></div></div>${list.length ? pdfRows(list, "rattrapage", admin) : emptyState(admin ? "Aucun relevé de rattrapage déposé." : "Aucun relevé de rattrapage disponible.")}</div>`;
-}
-
-function renderResultats(){
-  const u = uiState.resultats; const admin = isAdmin();
-  const list = state.resultatPdfs.filter(p => p.filiere===u.filiere && p.niveau===u.niveau && (p.annee || ANNEE_DEFAUT) === u.annee).sort((a,b) => b.dateAjout.localeCompare(a.dateAjout));
-  const filterBar = admin ? `<div class="filter-bar"><select id="fResFiliere">${FILIERES.map(f=>`<option value="${f}" ${u.filiere===f?"selected":""}>${FILIERE_LABEL[f]}</option>`).join("")}</select><select id="fResNiveau">${NIVEAUX.map(n=>`<option value="${n}" ${u.niveau===n?"selected":""}>${n}</option>`).join("")}</select><select id="fResAnnee">${ANNEES_UNIV.map(a=>`<option value="${a}" ${u.annee===a?"selected":""}>${a}</option>`).join("")}</select><div style="margin-left:auto; display:flex; gap:10px;"><button class="btn danger" id="btnPurgeYear">⚠️ Fin d'année</button><button class="btn" id="btnAddResultatPdf">+ Ajouter un résultat</button></div></div>` : `<div class="filter-bar"><span class="locked-filter">Filière &amp; niveau : <strong>${FILIERE_LABEL[u.filiere]} · ${u.niveau} · ${u.annee}</strong></span></div>`;
-  return `${filterBar}<div class="panel"><div class="panel-head"><div><h2>${FILIERE_LABEL[u.filiere]} · ${u.niveau} · ${u.annee}</h2></div></div>${list.length ? pdfRows(list, "resultats", admin) : emptyState(admin ? "Aucun résultat déposé." : "Aucun résultat disponible.")}</div>`;
+  const filterBar = admin 
+    ? `<div class="filter-bar">
+         <select id="fNoteFiliere">${FILIERES.map(f=>`<option value="${f}" ${u.filiere===f?"selected":""}>${FILIERE_LABEL[f]}</option>`).join("")}</select>
+         <select id="fNoteNiveau">${NIVEAUX.map(n=>`<option value="${n}" ${u.niveau===n?"selected":""}>${n}</option>`).join("")}</select>
+         <select id="fNoteAnnee">${ANNEES_UNIV.map(a=>`<option value="${a}" ${u.annee===a?"selected":""}>${a}</option>`).join("")}</select>
+         <div style="margin-left:auto; display:flex; gap:10px;">
+           <button class="btn danger" id="btnPurgeYear">⚠️ Fin d'année</button>
+           <button class="btn" id="btnAddNotePdf">+ Ajouter un cours</button>
+         </div>
+       </div>` 
+    : `<div class="filter-bar"><span class="locked-filter">Filière &amp; niveau : <strong>${FILIERE_LABEL[u.filiere]} · ${u.niveau} · ${u.annee}</strong></span></div>`;
+    
+  return `${filterBar}
+    <div class="panel">
+      <div class="panel-head"><div><h2>${FILIERE_LABEL[u.filiere]} · ${u.niveau} · ${u.annee}</h2></div></div>
+      ${list.length ? pdfRows(list, "notes", admin) : emptyState(admin ? "Aucun cours déposé." : "Aucun cours disponible.")}
+    </div>`;
 }
 
 function renderEmploi(){
-  const u = uiState.emploi; const admin = isAdmin();
-  const list = state.schedulePdfs.filter(p => p.filiere===u.filiere && p.niveau===u.niveau && (p.annee || ANNEE_DEFAUT) === u.annee).sort((a,b) => b.dateAjout.localeCompare(a.dateAjout));
-  const filterBar = admin ? `<div class="filter-bar"><select id="fEmpFiliere">${FILIERES.map(f=>`<option value="${f}" ${u.filiere===f?"selected":""}>${FILIERE_LABEL[f]}</option>`).join("")}</select><select id="fEmpNiveau">${NIVEAUX.map(n=>`<option value="${n}" ${u.niveau===n?"selected":""}>${n}</option>`).join("")}</select><select id="fEmpAnnee">${ANNEES_UNIV.map(a=>`<option value="${a}" ${u.annee===a?"selected":""}>${a}</option>`).join("")}</select><div style="margin-left:auto; display:flex; gap:10px;"><button class="btn danger" id="btnPurgeYear">⚠️ Fin d'année</button><button class="btn" id="btnAddPdf">+ Ajouter un PDF</button></div></div>` : `<div class="filter-bar"><span class="locked-filter">Filière &amp; niveau : <strong>${FILIERE_LABEL[u.filiere]} · ${u.niveau} · ${u.annee}</strong></span></div>`;
-  return `${filterBar}<div class="panel"><div class="panel-head"><div><h2>${FILIERE_LABEL[u.filiere]} · ${u.niveau} · ${u.annee}</h2></div></div>${list.length ? pdfRows(list, "schedule", admin) : emptyState(admin ? "Aucun emploi du temps déposé." : "Aucun emploi du temps disponible.")}</div>`;
-}
-
-function renderCommuniques(){
+  const u = uiState.emploi; 
   const admin = isAdmin();
-  const list = state.communiquesPdfs.slice().sort((a,b) => b.dateAjout.localeCompare(a.dateAjout));
-  const filterBar = admin ? `<div class="filter-bar"><span class="locked-filter">Visible par <strong>tous les étudiants</strong></span><div style="margin-left:auto; display:flex; gap:10px;">${list.length ? `<button class="btn danger" id="btnPurgeCommuniques" style="padding:9px 15px; font-size:13.5px;">🗑️ Tout supprimer</button>` : ""}<button class="btn" id="btnAddCommunique">+ Ajouter un communiqué</button></div></div>` : `<div class="filter-bar"><span class="locked-filter">📢 Annonces officielles de l'INPTIC</span></div>`;
-  return `${filterBar}<div class="panel"><div class="panel-head"><div><h2>Communiqués officiels</h2><p>Annonces visibles par tous les étudiants.</p></div></div>${list.length ? pdfRows(list, "communiques", admin) : emptyState(admin ? "Aucun communiqué publié." : "Aucun communiqué pour le moment.")}</div>`;
+  const currentAnnee = u.annee;
+  
+  const filterBar = admin 
+    ? `<div class="filter-bar">
+         <select id="fEmpAnnee">${ANNEES_UNIV.map(a=>`<option value="${a}" ${u.annee===a?"selected":""}>${a}</option>`).join("")}</select>
+         <div style="margin-left:auto; display:flex; gap:10px;">
+           <button class="btn danger" id="btnPurgeYear">⚠️ Fin d'année</button>
+         </div>
+       </div>` 
+    : `<div class="filter-bar">
+         <span class="locked-filter">Année : <strong>${u.annee}</strong></span>
+       </div>`;
+  
+  let panelsHtml = '';
+  
+  FILIERES.forEach(filiere => {
+    NIVEAUX.forEach(niveau => {
+      if (!admin && (currentUser.filiere !== filiere || currentUser.niveau !== niveau)) return;
+      
+      const list = state.schedulePdfs
+        .filter(p => p.filiere === filiere && p.niveau === niveau && (p.annee || ANNEE_DEFAUT) === currentAnnee)
+        .sort((a,b) => b.dateAjout.localeCompare(a.dateAjout));
+      
+      if (admin || list.length > 0) {
+        panelsHtml += `
+          <div class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Programme : ${FILIERE_LABEL[filiere]} - ${niveau}</h2>
+                <p>Année universitaire : ${currentAnnee}</p>
+              </div>
+              ${admin ? `<button class="btn small" data-add-pdf data-filiere="${filiere}" data-niveau="${niveau}">+ Ajouter un programme</button>` : ''}
+            </div>
+            ${list.length ? pdfRows(list, "schedule", admin) : emptyState(admin ? "Aucun programme déposé." : "Aucun programme disponible.")}
+          </div>
+        `;
+      }
+    });
+  });
+  
+  if (!admin && !panelsHtml) {
+    panelsHtml = `<div class="panel">${emptyState("Aucun programme disponible pour votre filière.")}</div>`;
+  }
+  
+  return `${filterBar}${panelsHtml}`;
 }
 
 function renderCompte(){
@@ -1577,12 +1549,9 @@ function renderCompte(){
 function emptyState(msg){ return `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><p>${esc(msg)}</p></div>`; }
 
 const ROUTES = {
-  etudiants:{title:"Étudiants", sub:"Gestion des inscriptions par filière et niveau", render:renderStudents, adminOnly:true},
-  notes:{title:"Relevé de notes", sub:"Consultation et dépôt des relevés de notes par filière et niveau", render:renderNotes},
-  rattrapage:{title:"Rattrapage", sub:"Consultation et dépôt des relevés de rattrapage", render:renderRattrapage},
-  resultats:{title:"Résultat des semestres", sub:"Consultation et dépôt des résultats semestriels", render:renderResultats},
-  communiques:{title:"Communiqués", sub:"Annonces officielles de l'INPTIC", render:renderCommuniques},
-  emploi:{title:"Emploi du temps", sub:"Planning hebdomadaire par filière et niveau", render:renderEmploi},
+  etudiants:{title:"Étudiants", sub:"Gestion des inscriptions", render:renderStudents, adminOnly:true},
+  notes:{title:"Cours", sub:"Consultation et dépôt des supports de cours", render:renderNotes},
+  emploi:{title:"Programme", sub:"Consultation du programme par filière", render:renderEmploi},
   compte:{title:"Mon compte", sub:"Informations personnelles et progression", render:renderCompte}
 };
 
@@ -1607,7 +1576,7 @@ function renderRoute(){
   attachViewHandlers(route);
   closeSidebarMobile();
   renderPushStatus();
-  if(route === "emploi" || route === "notes" || route === "resultats" || route === "rattrapage" || route === "communiques"){
+  if(route === "emploi" || route === "notes"){
     setTimeout(preloadRecentPdfs, 800);
     setTimeout(markCachedPdfs, 1200);
   }
@@ -1659,9 +1628,14 @@ function attachViewHandlers(route){
       let annee = ANNEE_DEFAUT;
       if(route === "emploi") annee = uiState.emploi.annee;
       else if(route === "notes") annee = uiState.notes.annee;
-      else if(route === "rattrapage") annee = uiState.rattrapage.annee;
-      else if(route === "resultats") annee = uiState.resultats.annee;
       purgeYearModal(annee); return;
+    }
+
+    const addPdfBtn = e.target.closest("[data-add-pdf]");
+    if (addPdfBtn) {
+      if (!isAdmin()) { toast("Réservé à l'administrateur"); return; }
+      pdfUploadModal("schedule", addPdfBtn.dataset.filiere, addPdfBtn.dataset.niveau, uiState.emploi.annee);
+      return;
     }
 
     const btn = e.target.closest("[data-action]");
@@ -1693,24 +1667,18 @@ function attachViewHandlers(route){
       const kind = btn.dataset.kind, id = btn.dataset.id;
       let pdf;
       if (kind === "notes") pdf = state.notesPdfs.find(x => x.id === id);
-      else if (kind === "resultats") pdf = state.resultatPdfs.find(x => x.id === id);
-      else if (kind === "rattrapage") pdf = state.rattrapagePdfs.find(x => x.id === id);
-      else if (kind === "communiques") pdf = state.communiquesPdfs.find(x => x.id === id);
       else pdf = state.schedulePdfs.find(x => x.id === id);
       if (pdf) openRemotePdf(pdf);
     } else if(action==="download-pdf"){
       const kind = btn.dataset.kind;
-      const list = kind==="notes" ? state.notesPdfs : kind==="resultats" ? state.resultatPdfs : kind==="rattrapage" ? state.rattrapagePdfs : kind==="communiques" ? state.communiquesPdfs : state.schedulePdfs;
+      const list = kind==="notes" ? state.notesPdfs : state.schedulePdfs;
       const pdf = list.find(x => x.id === btn.dataset.id);
       if (pdf) downloadRemotePdf(pdf);
     } else if(action==="delete-pdf"){
       if(!isAdmin()){ toast("Réservé à l'administrateur"); return; }
       let label;
-      if (btn.dataset.kind === "notes") label = "relevé de notes";
-      else if (btn.dataset.kind === "resultats") label = "résultat";
-      else if (btn.dataset.kind === "rattrapage") label = "relevé de rattrapage";
-      else if (btn.dataset.kind === "communiques") label = "communiqué";
-      else label = "emploi du temps";
+      if (btn.dataset.kind === "notes") label = "cours";
+      else label = "programme";
       if(confirm(`Supprimer ce ${label} ?`)){
         try{
           await api.call("DELETE", "/docs/" + btn.dataset.id);
@@ -1728,14 +1696,6 @@ function attachViewHandlers(route){
     else if(t.id==="fNoteFiliere"){ uiState.notes.filiere = t.value; renderRoute(); }
     else if(t.id==="fNoteNiveau"){ uiState.notes.niveau = t.value; renderRoute(); }
     else if(t.id==="fNoteAnnee"){ uiState.notes.annee = t.value; renderRoute(); }
-    else if(t.id==="fRatFiliere"){ uiState.rattrapage.filiere = t.value; renderRoute(); }
-    else if(t.id==="fRatNiveau"){ uiState.rattrapage.niveau = t.value; renderRoute(); }
-    else if(t.id==="fRatAnnee"){ uiState.rattrapage.annee = t.value; renderRoute(); }
-    else if(t.id==="fResFiliere"){ uiState.resultats.filiere = t.value; renderRoute(); }
-    else if(t.id==="fResNiveau"){ uiState.resultats.niveau = t.value; renderRoute(); }
-    else if(t.id==="fResAnnee"){ uiState.resultats.annee = t.value; renderRoute(); }
-    else if(t.id==="fEmpFiliere"){ uiState.emploi.filiere = t.value; renderRoute(); }
-    else if(t.id==="fEmpNiveau"){ uiState.emploi.niveau = t.value; renderRoute(); }
     else if(t.id==="fEmpAnnee"){ uiState.emploi.annee = t.value; renderRoute(); }
   };
 
@@ -1743,14 +1703,7 @@ function attachViewHandlers(route){
     if(e.target.id==="fStudSearch"){ uiState.students.q = e.target.value; renderStudentsListOnly(); }
   };
 
-  if(route==="emploi" && isAdmin()){ const btn = document.getElementById("btnAddPdf"); if(btn) btn.onclick = ()=> pdfUploadModal("schedule", uiState.emploi.filiere, uiState.emploi.niveau, uiState.emploi.annee); }
   if(route==="notes" && isAdmin()){ const btn = document.getElementById("btnAddNotePdf"); if(btn) btn.onclick = ()=> pdfUploadModal("notes", uiState.notes.filiere, uiState.notes.niveau, uiState.notes.annee); }
-  if(route==="rattrapage" && isAdmin()){ const btn = document.getElementById("btnAddRattrapagePdf"); if(btn) btn.onclick = ()=> pdfUploadModal("rattrapage", uiState.rattrapage.filiere, uiState.rattrapage.niveau, uiState.rattrapage.annee); }
-  if(route==="resultats" && isAdmin()){ const btn = document.getElementById("btnAddResultatPdf"); if(btn) btn.onclick = ()=> pdfUploadModal("resultats", uiState.resultats.filiere, uiState.resultats.niveau, uiState.resultats.annee); }
-  if(route==="communiques" && isAdmin()){
-    const btn = document.getElementById("btnAddCommunique"); if(btn) btn.onclick = ()=> pdfUploadModal("communiques", "TOUTES", "TOUS", "TOUTES");
-    const btnPurge = document.getElementById("btnPurgeCommuniques"); if(btnPurge) btnPurge.onclick = ()=> purgeCommuniquesModal();
-  }
 }
 
 function renderStudentsListOnly(){
@@ -1825,8 +1778,8 @@ const notif = {
   detectNewDocs(previousIds){
     if(!Array.isArray(previousIds)) return;
     const ids = previousIds.map(x => typeof x === "string" ? x : x.id); const prevIds = new Set(ids);
-    const fresh = state.schedulePdfs.concat(state.notesPdfs, state.resultatPdfs, state.rattrapagePdfs, state.communiquesPdfs).filter(d => !prevIds.has(d.id));
-    const KIND_LABEL = { schedule: "Emploi du temps", notes: "Relevé de notes", resultats: "Résultat de semestre", rattrapage: "Relevé de rattrapage", communiques: "Nouveau communiqué" };
+    const fresh = state.schedulePdfs.concat(state.notesPdfs).filter(d => !prevIds.has(d.id));
+    const KIND_LABEL = { schedule: "Nouveau programme", notes: "Nouveau cours" };
     fresh.forEach(doc => {
       const label = KIND_LABEL[doc.kind] || "Nouveau document"; const suffix = doc.filiere && doc.filiere !== "TOUTES" ? ` · ${doc.filiere} ${doc.niveau}` : "";
       const url = "#/" + (doc.kind === "schedule" ? "emploi" : doc.kind); this.add({ id: "doc-" + doc.id, title: label, text: doc.titre + suffix, url });
@@ -1846,7 +1799,7 @@ function fmtRelativeTime(iso){
   return new Date(iso).toLocaleDateString("fr-FR");
 }
 
-function saveDocsSnapshot(){ try{ const ids = state.schedulePdfs.concat(state.notesPdfs, state.resultatPdfs, state.rattrapagePdfs, state.communiquesPdfs).map(d => d.id); localStorage.setItem("inptic.docsSnapshot", JSON.stringify(ids)); }catch(e){} }
+function saveDocsSnapshot(){ try{ const ids = state.schedulePdfs.concat(state.notesPdfs).map(d => d.id); localStorage.setItem("inptic.docsSnapshot", JSON.stringify(ids)); }catch(e){} }
 function loadDocsSnapshot(){ try{ return JSON.parse(localStorage.getItem("inptic.docsSnapshot") || "null"); }catch(e){ return null; } }
 
 notif.load();
